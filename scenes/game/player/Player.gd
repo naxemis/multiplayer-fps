@@ -227,14 +227,19 @@ func wall_jumping() -> void:
 	if get_wall_jump_state():
 		reset_wall_jumping_directions()
 		
-		# give player slight jump in vertical direction depending on his speed; more speed = bigger jump
+		# calculates and clamps vertical jump force after wall jumping
 		var vertical_jump: float = movement_speed * vertical_jump_factor 
 		vertical_jump = clampf(vertical_jump, 0.0, jump_velocity * max_vertical_jump_factor)
 		
+		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
 		movement_directions.y = 0
 		movement_directions.y += movement_speed * vertical_jump_factor
 		
-		wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
+		# direction of wall jump
+		if !Input.is_action_pressed("change_wall_jump_direction"): # player wan't to "bounce" from a wall
+			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
+		else: # player want to jump in same direction he jumped from
+			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * -movement_directions)
 	
 	if is_on_floor():
 		reset_wall_jumping_directions()
