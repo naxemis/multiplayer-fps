@@ -53,7 +53,7 @@ func get_double_jump_state() -> bool:
 	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state()
 
 func get_wall_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_wall_only()
+	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0)
 
 func change_movement_state(new_movement_state) -> void:
 	movement_state = new_movement_state
@@ -103,13 +103,13 @@ func collision_shape_animations(delta) -> void:
 var movement_speed: float = 0.0
 
 @export_category("Crouching and Walking")
-@export var crouch_speed: float = 1.0
-@export var walk_speed: float = 1.0
-var current_walk_speed: float = 1.0
+@export var crouch_speed: float = 1.5
+@export var walk_speed: float = 1.5
+var current_walk_speed: float = 1.5
 
 @export_category("Running")
 var run_speed: float = 0.0
-@export var max_run_speed: float = 2.0
+@export var max_run_speed: float = 2.5
 @export_group("Speed Icrease and Decrease")
 @export var run_speed_increase: float = 0.75
 @export var run_walk_decrease: float = 2.5
@@ -117,10 +117,10 @@ var run_speed: float = 0.0
 
 @export_category("Sliding")
 var slide_speed: float = 0.0
+@export var max_slide_speed: float = 2.5
+
 @export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
 @export var slope_interference_factor: float = 0.85 # how much slope interference will actually work on calculating slide buff
-
-@export var max_slide_speed: float = 2.0
 
 @export_group("Speed Icrease and Decrease")
 @export var slide_run_decrease: float = 0.1 # decrease when switching to running
@@ -152,7 +152,7 @@ func calculate_movement_speed(delta) -> void:
 	# slide speed
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 	
-	var calculating_slope_interference: Vector3 = get_floor_normal() * transform.basis.z * movement_directions.z
+	var calculating_slope_interference: Vector3 = get_floor_normal() * -transform.basis.z
 	var slope_interference: float = (calculating_slope_interference.z + calculating_slope_interference.x) * slope_interference_factor
 	
 	var floor_speed = crouch_speed + current_walk_speed + run_speed
@@ -183,7 +183,7 @@ func get_movement_directions() -> void:
 
 @export_category("Gravity")
 # applies gravity to player's body, when it's not on floor
-@export var gravity_force: float = 9.8
+@export var gravity_force: float = 18
 func gravity(delta) -> void:
 	if !is_on_floor():
 		movement_directions.y -= gravity_force * delta
@@ -192,13 +192,13 @@ func gravity(delta) -> void:
 
 @export_category("Jumping")
 # adds jumping mechanic to player's movement
-@export var jump_velocity: float = 4.5
+@export var jump_velocity: float = 7.5
 func jump() -> void:
 	if get_jump_state():
 		movement_directions.y += jump_velocity
 
 @export_category("Double Jumping")
-@export var double_jump_multiplier: float = 0.75
+@export var double_jump_multiplier: float = 0.7
 var can_double_jump: bool = true
 var double_jumping: bool = false
 func double_jump(delta) -> void:
@@ -219,7 +219,7 @@ func double_jump(delta) -> void:
 @export_category("Wall Jumping")
 var wall_jump_direction: Vector3
 @export var vertical_jump_factor: float = 1.5
-
+@export var max_vertical_jump_factor: float = 1.0
 func reset_wall_jumping_directions() -> void:
 	wall_jump_direction = Vector3(1, 0, 1)
 
@@ -228,10 +228,13 @@ func wall_jumping() -> void:
 		reset_wall_jumping_directions()
 		
 		# give player slight jump in vertical direction depending on his speed; more speed = bigger jump
+		var vertical_jump: float = movement_speed * vertical_jump_factor 
+		vertical_jump = clampf(vertical_jump, 0.0, jump_velocity * max_vertical_jump_factor)
+		
 		movement_directions.y = 0
 		movement_directions.y += movement_speed * vertical_jump_factor
 		
-		wall_jump_direction = get_wall_normal()
+		wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
 	
 	if is_on_floor():
 		reset_wall_jumping_directions()
@@ -245,6 +248,7 @@ func movement_velocity() -> void:
 		velocity = (transform_x.normalized() + transform_z.normalized()) * movement_speed + transform_y
 	else:
 		velocity = wall_jump_direction * movement_speed + transform_y
+		
 	
 	move_and_slide()
 
