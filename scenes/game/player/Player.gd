@@ -3,22 +3,53 @@ class_name Player
 extends CharacterBody3D
 
 @export_category("Mouse")
-# camera rotation
 @export var mouse_sensitivity: float = 0.075
-func head_cam_rotation(event) -> void:
-	if event is InputEventMouseMotion:
-		# connect mouse movement to head or body rotation
+
+func body_rotation(event) -> void:
+	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
+		# connects mouse movement to head rotation
 		self.rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
-		%Head.rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
 		
 		# wraps player's body rotation to left and right direction
 		const rotation_min: float = deg_to_rad(0)
 		const rotation_max: float = deg_to_rad(360)
 		self.rotation.y = wrapf(self.rotation.y, rotation_min, rotation_max)
+
+var head_rotation: Vector3
+func get_head_rotation(event) -> void:
+	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
+		# connects mouse movement to free look rotation
+		head_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
 		
 		# limits player's head rotation in up and down direction
 		const rotation_limit: float = deg_to_rad(90)
-		%Head.rotation.x = clampf(%Head.rotation.x, -rotation_limit, rotation_limit)
+		head_rotation.x = clampf(head_rotation.x, -rotation_limit, rotation_limit)
+
+var free_look_rotation: Vector3
+func get_free_look_rotation(event) -> void:
+	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
+		# connects mouse movement to free look rotation
+		free_look_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
+		free_look_rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
+		
+		# limits player's free look rotation in up and down direction
+		const rotation_limit: Vector2 = Vector2(deg_to_rad(30), deg_to_rad(40))
+		free_look_rotation.x = clampf(free_look_rotation.x, -rotation_limit.x, rotation_limit.x)
+		free_look_rotation.y = clampf(free_look_rotation.y, -rotation_limit.y, rotation_limit.y)
+
+@export var free_look_return_speed: float = 12.5
+func free_look_return(delta) -> void:
+	if !Input.is_action_pressed("free_look"):
+		free_look_rotation.x = lerpf(free_look_rotation.x, 0.0, free_look_return_speed * delta)
+		free_look_rotation.y = lerpf(free_look_rotation.y, 0.0, free_look_return_speed * delta)
+
+# combines head_rotation vairable value and free_look_rotation vairable value and sets it to %Head.rotation
+func set_head_rotation() -> void:
+	%Head.rotation = head_rotation + free_look_rotation # combines values
+	
+	# limits player's head rotation in up and down direction
+	const rotation_limit: float = deg_to_rad(90)
+	%Head.rotation.x = clampf(%Head.rotation.x, -rotation_limit, rotation_limit)
 
 # identifies in what movement state player is currently in
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
@@ -27,7 +58,7 @@ var movement_state = MovementStates.IDLE
 
 @onready var uncrouch_ray_cast_colliding: bool
 @onready var unslide_ray_cast_colliding: bool
-func check_can_player_stand_up() -> void:
+func can_player_stand_up() -> void:
 	uncrouch_ray_cast_colliding = $CrouchRayCast.is_colliding()
 	unslide_ray_cast_colliding = $SlideRayCast.is_colliding()
 
@@ -261,10 +292,15 @@ func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _unhandled_input(event: InputEvent) -> void:
-	head_cam_rotation(event)
+	body_rotation(event)
+	get_head_rotation(event)
+	get_free_look_rotation(event)
 
 func _process(delta: float) -> void:
-	check_can_player_stand_up()
+	free_look_return(delta)
+	set_head_rotation()
+	
+	can_player_stand_up()
 	
 	set_movement_states()
 	
@@ -283,4 +319,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " Movement State: ", movement_states_array[movement_state])
+	#%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " Movement State: ", movement_states_array[movement_state])
