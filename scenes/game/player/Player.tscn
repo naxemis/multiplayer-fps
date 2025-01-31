@@ -1,0 +1,382 @@
+[gd_scene load_steps=20 format=3 uid="uid://l2jckejdxgx6"]
+
+[ext_resource type="Script" path="res://scenes/game/player/Player.gd" id="1_0ivw4"]
+[ext_resource type="Shader" path="res://assets/3d/shaders/Toon.gdshader" id="1_5v8pb"]
+[ext_resource type="Shader" path="res://assets/3d/shaders/Outline.gdshader" id="1_myayq"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
+radius = 0.25
+height = 1.4
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sui4k"]
+render_priority = 0
+shader = ExtResource("1_myayq")
+shader_parameter/enable = true
+shader_parameter/useVertex = false
+shader_parameter/outlineThickness = 0.01
+shader_parameter/outlineColor = Color(0, 0, 0, 1)
+
+[sub_resource type="Gradient" id="Gradient_pj34d"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.336066, 0.713115)
+colors = PackedColorArray(0, 0, 0, 1, 0.0687982, 0.0687983, 0.0687982, 1, 0.144063, 0.144063, 0.144062, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_i4nvj"]
+gradient = SubResource("Gradient_pj34d")
+width = 512
+
+[sub_resource type="Gradient" id="Gradient_6umvt"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.942623)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_il4dn"]
+gradient = SubResource("Gradient_6umvt")
+width = 512
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_viwht"]
+render_priority = 0
+next_pass = SubResource("ShaderMaterial_sui4k")
+shader = ExtResource("1_5v8pb")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/color_gradient = SubResource("GradientTexture1D_i4nvj")
+shader_parameter/reflection_dot_gradient = SubResource("GradientTexture1D_il4dn")
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_etifa"]
+radius = 0.25
+height = 1.8
+
+[sub_resource type="Animation" id="Animation_ngn7b"]
+resource_name = "One-Third Lower"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Collision:shape:height")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.2]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Collision:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.6, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Head:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 1, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Collision:shape:radius")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Body:mesh:radius")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Body:mesh:height")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.2]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Body:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.6, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_pnp1o"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Collision:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.9, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Collision:shape:height")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.8]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Head:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 1.5, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Collision:shape:radius")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Body:mesh:radius")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Body:mesh:height")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.4]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Body:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.7, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_hveih"]
+resource_name = "Standing"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Collision:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.9, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Collision:shape:height")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.8]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Head:position")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 1.5, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Collision:shape:radius")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Body:mesh:height")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.8]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Body:mesh:radius")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.25]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Body:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0.9, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_76wns"]
+_data = {
+"One-Third Lower": SubResource("Animation_ngn7b"),
+"RESET": SubResource("Animation_pnp1o"),
+"Standing": SubResource("Animation_hveih")
+}
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_s1vnq"]
+animation = &"One-Third Lower"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b7wn7"]
+animation = &"Standing"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_g54bb"]
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_th03g"]
+graph_offset = Vector2(-448, 149)
+"nodes/One-Third Lower/node" = SubResource("AnimationNodeAnimation_s1vnq")
+"nodes/One-Third Lower/position" = Vector2(-220, 280)
+nodes/Standing/node = SubResource("AnimationNodeAnimation_b7wn7")
+nodes/Standing/position = Vector2(-240, 120)
+"nodes/State Blend/node" = SubResource("AnimationNodeBlend2_g54bb")
+"nodes/State Blend/position" = Vector2(60, 160)
+node_connections = [&"State Blend", 0, &"Standing", &"State Blend", 1, &"One-Third Lower", &"output", 0, &"State Blend"]
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+floor_max_angle = 0.959931
+script = ExtResource("1_0ivw4")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+visible = false
+layers = 2
+mesh = SubResource("CapsuleMesh_7dslh")
+surface_material_override/0 = SubResource("ShaderMaterial_viwht")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_etifa")
+
+[node name="Head" type="Node3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head"]
+fov = 59.0
+
+[node name="CollisionAnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_76wns")
+}
+
+[node name="CollisionAnimationTree" type="AnimationTree" parent="."]
+tree_root = SubResource("AnimationNodeBlendTree_th03g")
+anim_player = NodePath("../CollisionAnimationPlayer")
+"parameters/State Blend/blend_amount" = 0.0
+
+[node name="Debug" type="Label" parent="."]
+unique_name_in_owner = true
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="CrouchRayCast" type="RayCast3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 1.2, 0)
+target_position = Vector3(0, -0.6, 0)
+
+[node name="SlideRayCast" type="RayCast3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, 8.74228e-08, 0, -8.74228e-08, -1, 0, 0.6, 0)
+target_position = Vector3(0, -0.6, 0)
