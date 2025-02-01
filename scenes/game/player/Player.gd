@@ -16,16 +16,17 @@ func body_rotation(event) -> void:
 		self.rotation.y = wrapf(self.rotation.y, rotation_min, rotation_max)
 
 var head_rotation: Vector3
+@export var head_rotation_limit: float = 90
 func get_head_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
 		# connects mouse movement to free look rotation
 		head_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
 		
 		# limits player's head rotation in up and down direction
-		const rotation_limit: float = deg_to_rad(90)
-		head_rotation.x = clampf(head_rotation.x, -rotation_limit, rotation_limit)
+		head_rotation.x = clampf(head_rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
 
 var free_look_rotation: Vector3
+@export var free_look_rotation_limit: Vector2 = Vector2(35, 50)
 func get_free_look_rotation(event) -> void:
 	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
 		# connects mouse movement to free look rotation
@@ -33,9 +34,8 @@ func get_free_look_rotation(event) -> void:
 		free_look_rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
 		
 		# limits player's free look rotation in up and down direction
-		const rotation_limit: Vector2 = Vector2(deg_to_rad(30), deg_to_rad(40))
-		free_look_rotation.x = clampf(free_look_rotation.x, -rotation_limit.x, rotation_limit.x)
-		free_look_rotation.y = clampf(free_look_rotation.y, -rotation_limit.y, rotation_limit.y)
+		free_look_rotation.x = clampf(free_look_rotation.x, -deg_to_rad(free_look_rotation_limit.x), deg_to_rad(free_look_rotation_limit.x))
+		free_look_rotation.y = clampf(free_look_rotation.y, -deg_to_rad(free_look_rotation_limit.y), deg_to_rad(free_look_rotation_limit.y))
 
 @export var free_look_return_speed: float = 12.5
 func free_look_return(delta) -> void:
@@ -43,13 +43,12 @@ func free_look_return(delta) -> void:
 		free_look_rotation.x = lerpf(free_look_rotation.x, 0.0, free_look_return_speed * delta)
 		free_look_rotation.y = lerpf(free_look_rotation.y, 0.0, free_look_return_speed * delta)
 
-# combines head_rotation vairable value and free_look_rotation vairable value and sets it to %Head.rotation
+# combines head_rotation variable value and free_look_rotation variable value and sets it to %Head.rotation
 func set_head_rotation() -> void:
 	%Head.rotation = head_rotation + free_look_rotation # combines values
 	
 	# limits player's head rotation in up and down direction
-	const rotation_limit: float = deg_to_rad(90)
-	%Head.rotation.x = clampf(%Head.rotation.x, -rotation_limit, rotation_limit)
+	%Head.rotation.x = clampf(%Head.rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
 
 # identifies in what movement state player is currently in
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
