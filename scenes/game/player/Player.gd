@@ -136,37 +136,20 @@ func set_movement_states() -> void:
 var camera_fov: float
 @export var default_camera_fov: float = 59
 
-@export var crouch_fov_buff: float = -4.0
-@export var run_fov_buff: float = 4.0
-@export var slide_fov_buff: float = 8.0
-var movement_fov_buff: float = 0.0
-
 var speed_fov_buff: float = 0.0
-@export var speed_fov_buff_factor: float = 1.5
-
-@export var fov_change_speed: float = 15
+@export var speed_fov_buff_factor: float = 4.5
 func calculate_camera_fov(delta) -> void:
 	# calculate default camera fov
 	var base_camera_fov = default_camera_fov - ((walk_speed + crouch_speed) * speed_fov_buff_factor)
-	
-	# set current movement fov buff depending on movement state
-	if movement_state == MovementStates.CROUCH:
-		movement_fov_buff = crouch_fov_buff
-	elif movement_state == MovementStates.RUN:
-		movement_fov_buff = run_fov_buff
-	elif movement_state == MovementStates.SLIDE:
-		movement_fov_buff = slide_fov_buff
-	elif movement_state == MovementStates.WALK or movement_state == MovementStates.IDLE:
-		movement_fov_buff = 0.0
 	
 	# calculate speed fov buff
 	speed_fov_buff = movement_speed * speed_fov_buff_factor
 	
 	# combine fov buffs
-	camera_fov = base_camera_fov + movement_fov_buff + speed_fov_buff
+	camera_fov = base_camera_fov + speed_fov_buff
 	
 	# interpolate camera fov
-	%Camera.fov = lerpf(%Camera.fov, camera_fov, fov_change_speed * delta)
+	%Camera.fov = camera_fov
 #endregion
 
 #region Collision Shape Animations
