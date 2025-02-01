@@ -2,6 +2,7 @@ class_name Player
 
 extends CharacterBody3D
 
+#region Head and Body rotation
 @export_category("Mouse")
 @export var mouse_sensitivity: float = 0.075
 
@@ -49,7 +50,9 @@ func set_head_rotation() -> void:
 	
 	# limits player's head rotation in up and down direction
 	%Head.rotation.x = clampf(%Head.rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
+#endregion
 
+#region Velocity Timeout
 @export var time_before_velocity_timeout: float = 1.0 # how long player have to walk into wall before timeout
 var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
@@ -68,7 +71,9 @@ func get_velocity_timeout(delta) -> void:
 		velocity_timeout = true
 	else:
 		velocity_timeout = false
+#endregion
 
+#region Movement States
 # identifies in what movement state player is currently in
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
 
@@ -124,13 +129,53 @@ func set_movement_states() -> void:
 		change_movement_state(MovementStates.WALK)
 	elif get_idle_state():
 		change_movement_state(MovementStates.IDLE)
+#endregion
 
+#region Camera FOV
+@export_category("Camera FOV")
+var camera_fov: float
+@export var default_camera_fov: float = 59
+
+@export var crouch_fov_buff: float = -4.0
+@export var run_fov_buff: float = 4.0
+@export var slide_fov_buff: float = 8.0
+var movement_fov_buff: float = 0.0
+
+var speed_fov_buff: float = 0.0
+@export var speed_fov_buff_factor: float = 1.5
+
+@export var fov_change_speed: float = 15
+func calculate_camera_fov(delta) -> void:
+	# calculate default camera fov
+	var base_camera_fov = default_camera_fov - ((walk_speed + crouch_speed) * speed_fov_buff_factor)
+	
+	# set current movement fov buff depending on movement state
+	if movement_state == MovementStates.CROUCH:
+		movement_fov_buff = crouch_fov_buff
+	elif movement_state == MovementStates.RUN:
+		movement_fov_buff = run_fov_buff
+	elif movement_state == MovementStates.SLIDE:
+		movement_fov_buff = slide_fov_buff
+	elif movement_state == MovementStates.WALK or movement_state == MovementStates.IDLE:
+		movement_fov_buff = 0.0
+	
+	# calculate speed fov buff
+	speed_fov_buff = movement_speed * speed_fov_buff_factor
+	
+	# combine fov buffs
+	camera_fov = base_camera_fov + movement_fov_buff + speed_fov_buff
+	
+	# interpolate camera fov
+	%Camera.fov = lerpf(%Camera.fov, camera_fov, fov_change_speed * delta)
+#endregion
+
+#region Collision Shape Animations
 @export_category("Collision Shape Animations")
 var collision_blend_amount: float = 0.0
-@export_group("Animation Speed")
+
 @export var crouch_animation_speed: float = 7.5
 @export var slide_animation_speed: float = 10.0
-@export_group("Animation Blend Amount")
+
 @export var crouch_blend_amount: float = 1.0
 @export var slide_blend_amount: float = 2.0
 var amount_above_crouch_clamp: float
@@ -148,7 +193,9 @@ func collision_shape_animations(delta) -> void:
 			collision_blend_amount = lerpf(collision_blend_amount, 0.0, slide_animation_speed * delta)
 	
 	$CollisionAnimationTree["parameters/State Blend/blend_amount"] = collision_blend_amount
+#endregion
 
+#region Movement Speed
 var movement_speed: float = 0.0
 
 @export_category("Crouching and Walking")
@@ -159,7 +206,7 @@ var current_walk_speed: float = 1.5
 @export_category("Running")
 var run_speed: float = 0.0
 @export var max_run_speed: float = 2.5
-@export_group("Speed Icrease and Decrease")
+
 @export var run_speed_increase: float = 0.75
 @export var run_walk_decrease: float = 2.5
 @export var run_crouch_decrease: float = 4.0
@@ -171,7 +218,6 @@ var slide_speed: float = 0.0
 @export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
 @export var slope_interference_factor: float = 0.85 # how much slope interference will actually work on calculating slide buff
 
-@export_group("Speed Icrease and Decrease")
 @export var slide_run_decrease: float = 0.1 # decrease when switching to running
 @export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
 @export var slide_crouch_decrease: float = 4.0 # decrease when switching to crouching
@@ -223,13 +269,17 @@ func calculate_movement_speed(delta) -> void:
 	var speed_before_inertia: float = floor_speed + slide_speed
 	
 	movement_speed = lerpf(movement_speed, speed_before_inertia, speed_inertia * delta) # movement speed after adding inertia
+#endregion
 
+#region Movement Directions
 # in what direction player is trying to move
 var movement_directions: Vector3
 func get_movement_directions() -> void:
 	movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
 	movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
+#endregion
 
+#region Gravity, Jumping and Double Jumping
 @export_category("Gravity")
 # applies gravity to player's body, when it's not on floor
 @export var gravity_force: float = 18
@@ -264,7 +314,9 @@ func double_jump(delta) -> void:
 		double_jumping = true
 		
 		reset_wall_jumping_directions()
+#endregion
 
+#region Wall Jumping
 @export_category("Wall Jumping")
 var wall_jump_direction: Vector3
 @export var vertical_jump_factor: float = 1.5
@@ -292,6 +344,7 @@ func wall_jumping() -> void:
 	
 	if is_on_floor():
 		reset_wall_jumping_directions()
+#endregion
 
 func movement_velocity() -> void:
 	var transform_x: Vector3 = global_transform.basis.x * movement_directions.x
@@ -324,6 +377,8 @@ func _process(delta: float) -> void:
 	
 	set_movement_states()
 	
+	calculate_camera_fov(delta)
+	
 	collision_shape_animations(delta)
 	
 	calculate_movement_speed(delta)
@@ -339,4 +394,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " Movement State: ", movement_states_array[movement_state], " Velocity Timeout Time Left: ", velocity_timeout_time_left)
+	%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Camera FOV: ", %Camera.fov)
