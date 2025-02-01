@@ -342,7 +342,6 @@ script = ExtResource("1_0ivw4")
 
 [node name="Body" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
-visible = false
 layers = 2
 mesh = SubResource("CapsuleMesh_7dslh")
 surface_material_override/0 = SubResource("ShaderMaterial_viwht")
@@ -356,6 +355,7 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
 fov = 59.0
 
 [node name="CollisionAnimationPlayer" type="AnimationPlayer" parent="."]

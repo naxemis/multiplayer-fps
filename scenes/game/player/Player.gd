@@ -50,6 +50,25 @@ func set_head_rotation() -> void:
 	# limits player's head rotation in up and down direction
 	%Head.rotation.x = clampf(%Head.rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
 
+@export var time_before_velocity_timeout: float = 1.0 # how long player have to walk into wall before timeout
+var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
+var velocity_timeout: bool = false # true - player is walking into wall for too long time
+func is_blocked_on_wall() -> bool:
+	return is_on_floor() and is_on_wall() and velocity.z == 0 and velocity.x == 0
+
+func get_velocity_timeout(delta) -> void:
+	velocity_timeout_time_left = clampf(velocity_timeout_time_left, 0.0, time_before_velocity_timeout)
+	
+	if is_blocked_on_wall():
+		velocity_timeout_time_left -= delta
+	else:
+		velocity_timeout_time_left = time_before_velocity_timeout
+	
+	if velocity_timeout_time_left <= 0:
+		velocity_timeout = true
+	else:
+		velocity_timeout = false
+
 # identifies in what movement state player is currently in
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
 
@@ -62,19 +81,19 @@ func can_player_stand_up() -> void:
 	unslide_ray_cast_colliding = $SlideRayCast.is_colliding()
 
 func get_idle_state() -> bool:
-	return movement_directions.z == 0 and movement_directions.x == 0 and is_on_floor() and !uncrouch_ray_cast_colliding
+	return (movement_directions.z == 0 and movement_directions.x == 0 and is_on_floor() and !uncrouch_ray_cast_colliding) or velocity_timeout
 
 func get_walk_state() -> bool:
-	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLEJUMP) and !uncrouch_ray_cast_colliding
+	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLEJUMP) and !uncrouch_ray_cast_colliding and !velocity_timeout
 
 func get_run_state() -> bool:
-	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding
+	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding and !velocity_timeout
 
 func get_crouch_state() -> bool:
 	return ((Input.is_action_pressed("crouch") and is_on_floor()) and !unslide_ray_cast_colliding) or uncrouch_ray_cast_colliding
 
 func get_slide_state() -> bool:
-	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0
+	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0 and !velocity_timeout
 
 func get_jump_state() -> bool:
 	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH
@@ -299,6 +318,8 @@ func _process(delta: float) -> void:
 	free_look_return(delta)
 	set_head_rotation()
 	
+	get_velocity_timeout(delta)
+	
 	can_player_stand_up()
 	
 	set_movement_states()
@@ -318,4 +339,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	#%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " Movement State: ", movement_states_array[movement_state])
+	%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " Movement State: ", movement_states_array[movement_state], " Velocity Timeout Time Left: ", velocity_timeout_time_left)
