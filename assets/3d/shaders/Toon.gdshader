@@ -16,14 +16,13 @@ void fragment() {
 	ALBEDO = color.rgb * color_tex.rgb;
 }
 
-uniform sampler2D color_gradient; 
+uniform sampler2D color_gradient;
 uniform sampler2D reflection_dot_gradient;
 
 void light() {
 	float dot_product = clamp(dot(NORMAL, LIGHT), -0.95, 1);
 	float sample = clamp((dot_product + 1.0) * ATTENUATION / 2.1, 0.01, 1);
-	
+
 	vec4 shaded = texture(color_gradient, vec2(sample, 0.0)) + texture(reflection_dot_gradient, vec2(sample, 0.0));
 	DIFFUSE_LIGHT += clamp((shaded.rgb * LIGHT_COLOR), 0.0, 1.0);
 }
-

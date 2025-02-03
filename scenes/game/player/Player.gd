@@ -1,5 +1,4 @@
 class_name Player
-
 extends CharacterBody3D
 
 #region Head and Body rotation

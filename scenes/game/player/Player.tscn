@@ -337,7 +337,7 @@ node_connections = [&"State Blend", 0, &"Standing", &"State Blend", 1, &"One-Thi
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
-floor_max_angle = 0.959931
+floor_max_angle = 1.39626
 script = ExtResource("1_0ivw4")
 
 [node name="Body" type="MeshInstance3D" parent="."]
