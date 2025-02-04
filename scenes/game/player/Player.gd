@@ -97,16 +97,16 @@ func get_crouch_state() -> bool:
 	return ((Input.is_action_pressed("crouch") and is_on_floor()) and !unslide_ray_cast_colliding) or uncrouch_ray_cast_colliding
 
 func get_slide_state() -> bool:
-	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0 and !velocity_timeout
+	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0 and !velocity_timeout and stamina > 0
 
 func get_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH
+	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH and stamina - jump_stamina_drain > 0
 
 func get_double_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state()
+	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state() and stamina - double_jump_stamina_drain > 0
 
 func get_wall_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0)
+	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0) and stamina - wall_jump_stamina_drain >= 0
 
 func change_movement_state(new_movement_state) -> void:
 	movement_state = new_movement_state
@@ -118,8 +118,11 @@ func set_movement_states() -> void:
 		change_movement_state(MovementStates.WALLJUMP)
 	elif get_double_jump_state():
 		change_movement_state(MovementStates.DOUBLEJUMP)
-	elif get_slide_state(): 
-		change_movement_state(MovementStates.SLIDE)
+	elif get_slide_state():
+		if stamina > stamina_safe_zone: # player can only slide if stamina is greater than it's safe zone
+			change_movement_state(MovementStates.SLIDE)
+		else: # but if player is already sliding when stamina is under it's safe zone, then don't change his movement_state
+			movement_state = movement_state
 	elif get_run_state():
 		change_movement_state(MovementStates.RUN)
 	elif get_crouch_state():
@@ -200,7 +203,7 @@ var slide_speed: float = 0.0
 @export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
 @export var slope_interference_factor: float = 0.85 # how much slope interference will actually work on calculating slide buff
 
-@export var slide_run_decrease: float = 0.1 # decrease when switching to running
+@export var slide_run_decrease: float = 0.05 # decrease when switching to running
 @export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
 @export var slide_crouch_decrease: float = 4.0 # decrease when switching to crouching
 
@@ -253,6 +256,49 @@ func calculate_movement_speed(delta) -> void:
 	movement_speed = lerpf(movement_speed, speed_before_inertia, speed_inertia * delta) # movement speed after adding inertia
 #endregion
 
+#region Stamina
+var stamina: float = 100
+@export var max_stamina: float = 100
+
+@export var idle_stamina_recovery: float = 20
+@export var crouch_stamina_recovery: float = 15
+@export var walk_stamina_recovery: float = 12.5
+@export var run_stamina_recovery: float = 10
+
+@export var slide_stamina_drain: float = 15
+
+@export var jump_stamina_drain: float = 10
+@export var double_jump_stamina_drain: float = 7.5
+@export var wall_jump_stamina_drain: float = 2.5
+
+@export var stamina_safe_zone: float = 15
+func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
+	stamina -= value_of_stamina_drain
+
+func calculate_stamina(delta) -> void:
+	stamina = clampf(stamina, 0.0, max_stamina)
+	
+	match movement_state:
+		MovementStates.IDLE:
+			stamina += idle_stamina_recovery * delta
+		MovementStates.CROUCH:
+			stamina += crouch_stamina_recovery * delta
+		MovementStates.WALK:
+			stamina += walk_stamina_recovery * delta
+		MovementStates.RUN:
+			stamina += run_stamina_recovery * delta
+		MovementStates.SLIDE:
+			stamina -= slide_stamina_drain * delta
+	
+	if stamina <= stamina_safe_zone:
+		%StaminaBar.tint_progress = Color(188, 0, 0)
+	else:
+		%StaminaBar.tint_progress = Color(255, 255, 255)
+	
+	%StaminaBar.value = stamina
+	%StaminaBar.max_value = max_stamina
+#endregion
+
 #region Movement Directions
 # in what direction player is trying to move
 var movement_directions: Vector3
@@ -277,6 +323,8 @@ func gravity(delta) -> void:
 func jump() -> void:
 	if get_jump_state():
 		movement_directions.y += jump_velocity
+		
+		one_time_stamina_drain(jump_stamina_drain)
 
 @export_category("Double Jumping")
 @export var double_jump_multiplier: float = 0.7
@@ -294,6 +342,8 @@ func double_jump(delta) -> void:
 		movement_directions.y += jump_velocity * double_jump_multiplier
 		can_double_jump = false
 		double_jumping = true
+		
+		one_time_stamina_drain(double_jump_stamina_drain)
 		
 		reset_wall_jumping_directions()
 #endregion
@@ -323,6 +373,8 @@ func wall_jumping() -> void:
 			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
 		else: # player want to jump in same direction he jumped from
 			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * -movement_directions)
+		
+		one_time_stamina_drain(wall_jump_stamina_drain)
 	
 	if is_on_floor():
 		reset_wall_jumping_directions()
@@ -364,6 +416,8 @@ func _process(delta: float) -> void:
 	collision_shape_animations(delta)
 	
 	calculate_movement_speed(delta)
+	
+	calculate_stamina(delta)
 	
 	get_movement_directions()
 	

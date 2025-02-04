@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://l2jckejdxgx6"]
+[gd_scene load_steps=24 format=3 uid="uid://l2jckejdxgx6"]
 
 [ext_resource type="Script" path="res://scenes/game/player/Player.gd" id="1_0ivw4"]
 [ext_resource type="Shader" path="res://assets/3d/shaders/Toon.gdshader" id="1_5v8pb"]
@@ -335,6 +335,26 @@ nodes/Standing/position = Vector2(-240, 120)
 "nodes/State Blend/position" = Vector2(60, 160)
 node_connections = [&"State Blend", 0, &"Standing", &"State Blend", 1, &"One-Third Lower", &"output", 0, &"State Blend"]
 
+[sub_resource type="Gradient" id="Gradient_s4ll6"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(0, 0, 0, 0.235294)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_k1exq"]
+gradient = SubResource("Gradient_s4ll6")
+width = 1280
+height = 5
+
+[sub_resource type="Gradient" id="Gradient_qph30"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(1, 1, 1, 0.54902)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_vrsjq"]
+gradient = SubResource("Gradient_qph30")
+width = 1280
+height = 5
+
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
 floor_max_angle = 1.39626
@@ -373,6 +393,7 @@ anim_player = NodePath("../CollisionAnimationPlayer")
 unique_name_in_owner = true
 offset_right = 40.0
 offset_bottom = 23.0
+theme_override_font_sizes/font_size = 12
 
 [node name="CrouchRayCast" type="RayCast3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 1.2, 0)
@@ -381,3 +402,14 @@ target_position = Vector3(0, -0.6, 0)
 [node name="SlideRayCast" type="RayCast3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -1, 8.74228e-08, 0, -8.74228e-08, -1, 0, 0.6, 0)
 target_position = Vector3(0, -0.6, 0)
+
+[node name="StaminaBar" type="TextureProgressBar" parent="."]
+unique_name_in_owner = true
+offset_top = 715.0
+offset_right = 1280.0
+offset_bottom = 720.0
+step = 0.1
+value = 100.0
+fill_mode = 6
+texture_under = SubResource("GradientTexture2D_k1exq")
+texture_progress = SubResource("GradientTexture2D_vrsjq")
