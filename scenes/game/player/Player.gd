@@ -100,13 +100,13 @@ func get_slide_state() -> bool:
 	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0 and !velocity_timeout and stamina > 0
 
 func get_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH and stamina - jump_stamina_drain > 0
+	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH and stamina - jump_stamina_drain > 0 and stamina > stamina_safe_zone
 
 func get_double_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state() and stamina - double_jump_stamina_drain > 0
+	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state() and stamina - double_jump_stamina_drain > 0 and stamina > stamina_safe_zone
 
 func get_wall_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0) and stamina - wall_jump_stamina_drain >= 0
+	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0) and stamina - wall_jump_stamina_drain >= 0 and stamina > stamina_safe_zone
 
 func change_movement_state(new_movement_state) -> void:
 	movement_state = new_movement_state
@@ -192,7 +192,7 @@ var current_walk_speed: float = 1.5
 var run_speed: float = 0.0
 @export var max_run_speed: float = 2.5
 
-@export var run_speed_increase: float = 0.75
+@export var run_speed_increase: float = 1
 @export var run_walk_decrease: float = 2.5
 @export var run_crouch_decrease: float = 4.0
 
@@ -260,18 +260,19 @@ func calculate_movement_speed(delta) -> void:
 var stamina: float = 100
 @export var max_stamina: float = 100
 
-@export var idle_stamina_recovery: float = 20
-@export var crouch_stamina_recovery: float = 15
+@export var idle_stamina_recovery: float = 25
+@export var crouch_stamina_recovery: float = 17.5
 @export var walk_stamina_recovery: float = 12.5
-@export var run_stamina_recovery: float = 10
+@export var run_stamina_recovery: float = 7.5
+@export var in_air_stamina_recovery: float = 2.5
 
 @export var slide_stamina_drain: float = 15
 
-@export var jump_stamina_drain: float = 10
-@export var double_jump_stamina_drain: float = 7.5
+@export var jump_stamina_drain: float = 7.5
+@export var double_jump_stamina_drain: float = 5
 @export var wall_jump_stamina_drain: float = 2.5
 
-@export var stamina_safe_zone: float = 15
+@export var stamina_safe_zone: float = 10
 func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
 	stamina -= value_of_stamina_drain
 
@@ -289,6 +290,9 @@ func calculate_stamina(delta) -> void:
 			stamina += run_stamina_recovery * delta
 		MovementStates.SLIDE:
 			stamina -= slide_stamina_drain * delta
+	
+	if !is_on_floor():
+		stamina += in_air_stamina_recovery * delta
 	
 	if stamina <= stamina_safe_zone:
 		%StaminaBar.tint_progress = Color(188, 0, 0)
