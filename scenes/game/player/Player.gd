@@ -52,7 +52,7 @@ func set_head_rotation() -> void:
 #endregion
 
 #region Velocity Timeout
-@export var time_before_velocity_timeout: float = 1.0 # how long player have to walk into wall before timeout
+@export var time_before_velocity_timeout: float = 0.75 # how long player have to walk into wall before timeout
 var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
 func is_blocked_on_wall() -> bool:
@@ -303,12 +303,25 @@ func calculate_stamina(delta) -> void:
 	%StaminaBar.max_value = max_stamina
 #endregion
 
-#region Movement Directions
+#region Movement Directions and Inertia
 # in what direction player is trying to move
 var movement_directions: Vector3
 func get_movement_directions() -> void:
 	movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
 	movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
+
+var inertia_movement_directions: Vector3
+var current_inertia: float
+@export var on_ground_inertia: float = 10.0
+@export var in_air_inertia: float = 5.0
+func calulcate_movement_inertia(delta) -> void:
+	if is_on_floor():
+		current_inertia = on_ground_inertia
+	else:
+		current_inertia = in_air_inertia
+	
+	inertia_movement_directions.x = lerpf(inertia_movement_directions.x, movement_directions.x, current_inertia * delta)
+	inertia_movement_directions.z = lerpf(inertia_movement_directions.z, movement_directions.z, current_inertia * delta)
 #endregion
 
 #region Gravity, Jumping and Double Jumping
@@ -385,12 +398,12 @@ func wall_jumping() -> void:
 #endregion
 
 func movement_velocity() -> void:
-	var transform_x: Vector3 = global_transform.basis.x * movement_directions.x
+	var transform_x: Vector3 = global_transform.basis.x * inertia_movement_directions.x
 	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
-	var transform_z: Vector3 = global_transform.basis.z * movement_directions.z
+	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
 	
 	if movement_state != MovementStates.WALLJUMP:
-		velocity = (transform_x.normalized() + transform_z.normalized()) * movement_speed + transform_y
+		velocity = (transform_x + transform_z) * movement_speed + transform_y
 	else:
 		velocity = wall_jump_direction * movement_speed + transform_y
 		
@@ -424,6 +437,7 @@ func _process(delta: float) -> void:
 	calculate_stamina(delta)
 	
 	get_movement_directions()
+	calulcate_movement_inertia(delta)
 	
 	gravity(delta)
 	jump()
@@ -434,4 +448,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Camera FOV: ", %Camera.fov)
+	%Debug.text = str("Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1))
