@@ -1,14 +1,15 @@
-[gd_resource type="ShaderMaterial" load_steps=8 format=3 uid="uid://b4v83xbbpd4lm"]
+[gd_resource type="ShaderMaterial" load_steps=9 format=3 uid="uid://b4v83xbbpd4lm"]
 
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://assets/3d/shaders/Outline.gdshader" id="1_f8i54"]
 [ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://assets/3d/shaders/Toon.gdshader" id="2_74e3a"]
+[ext_resource type="Texture2D" uid="uid://c6gvp0nmi0rxe" path="res://addons/godot-prototype-texture/PNG/grid_1024x1024/grid_black_1024x1024.png" id="3_gotio"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cdiri"]
 render_priority = 0
 shader = ExtResource("1_f8i54")
 shader_parameter/enable = true
 shader_parameter/useVertex = true
-shader_parameter/outlineThickness = 0.01
+shader_parameter/outlineThickness = 0.02
 shader_parameter/outlineColor = Color(0, 0, 0, 1)
 
 [sub_resource type="Gradient" id="Gradient_h63en"]
@@ -33,7 +34,8 @@ render_priority = 0
 next_pass = SubResource("ShaderMaterial_cdiri")
 shader = ExtResource("2_74e3a")
 shader_parameter/color = Color(0.834614, 0.834614, 0.834614, 1)
-shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/texture_color = ExtResource("3_gotio")
+shader_parameter/uv1_scale = Vector3(9, 9, 9)
 shader_parameter/uv1_offset = Vector3(0, 0, 0)
 shader_parameter/color_gradient = SubResource("GradientTexture1D_7khld")
 shader_parameter/reflection_dot_gradient = SubResource("GradientTexture1D_r70rh")

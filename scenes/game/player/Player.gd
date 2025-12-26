@@ -11,12 +11,12 @@ func body_rotation(event) -> void:
 		self.rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
 		
 		# wraps player's body rotation to left and right direction
-		const rotation_min: float = deg_to_rad(0)
-		const rotation_max: float = deg_to_rad(360)
+		const rotation_min: float = deg_to_rad(0.0)
+		const rotation_max: float = deg_to_rad(360.0)
 		self.rotation.y = wrapf(self.rotation.y, rotation_min, rotation_max)
 
 var head_rotation: Vector3
-@export var head_rotation_limit: float = 90
+@export var head_rotation_limit: float = 90.0
 func get_head_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
 		# connects mouse movement to free look rotation
@@ -26,12 +26,13 @@ func get_head_rotation(event) -> void:
 		head_rotation.x = clampf(head_rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
 
 var free_look_rotation: Vector3
-@export var free_look_rotation_limit: Vector2 = Vector2(35, 50)
+@export var free_look_rotation_limit: Vector3 = Vector3(35, 50, 0)
+@export var free_look_sensitivity_multiplier: float = 4.0
 func get_free_look_rotation(event) -> void:
 	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
 		# connects mouse movement to free look rotation
-		free_look_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
-		free_look_rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
+		free_look_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity * free_look_sensitivity_multiplier)
+		free_look_rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity * free_look_sensitivity_multiplier)
 		
 		# limits player's free look rotation in up and down direction
 		free_look_rotation.x = clampf(free_look_rotation.x, -deg_to_rad(free_look_rotation_limit.x), deg_to_rad(free_look_rotation_limit.x))
@@ -76,7 +77,7 @@ func get_velocity_timeout(delta) -> void:
 # identifies in what movement state player is currently in
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
 
-var movement_state = MovementStates.IDLE
+var movement_state: int = MovementStates.IDLE
 
 @onready var uncrouch_ray_cast_colliding: bool
 @onready var unslide_ray_cast_colliding: bool
@@ -136,13 +137,13 @@ func set_movement_states() -> void:
 #region Camera FOV
 @export_category("Camera FOV")
 var camera_fov: float
-@export var default_camera_fov: float = 59
+@export var default_camera_fov: float = 59.0
 
+@export var speed_fov_buff_factor: float = 4.0
 var speed_fov_buff: float = 0.0
-@export var speed_fov_buff_factor: float = 4.5
 func calculate_camera_fov(delta) -> void:
 	# calculate default camera fov
-	var base_camera_fov = default_camera_fov - ((walk_speed + crouch_speed) * speed_fov_buff_factor)
+	var base_camera_fov: float = default_camera_fov - ((walk_speed + crouch_speed) * speed_fov_buff_factor)
 	
 	# calculate speed fov buff
 	speed_fov_buff = movement_speed * speed_fov_buff_factor
@@ -184,15 +185,15 @@ func collision_shape_animations(delta) -> void:
 var movement_speed: float = 0.0
 
 @export_category("Crouching and Walking")
-@export var crouch_speed: float = 1.5
-@export var walk_speed: float = 1.5
-var current_walk_speed: float = 1.5
+@export var crouch_speed: float = 2.0
+@export var walk_speed: float = 2.0
+var current_walk_speed: float = 0.0
 
 @export_category("Running")
 var run_speed: float = 0.0
 @export var max_run_speed: float = 2.5
 
-@export var run_speed_increase: float = 1
+@export var run_speed_increase: float = 1.0
 @export var run_walk_decrease: float = 2.5
 @export var run_crouch_decrease: float = 4.0
 
@@ -235,9 +236,9 @@ func calculate_movement_speed(delta) -> void:
 	var calculating_slope_interference: Vector3 = get_floor_normal() * -transform.basis.z
 	var slope_interference: float = (calculating_slope_interference.z + calculating_slope_interference.x) * slope_interference_factor
 	
-	var floor_speed = crouch_speed + current_walk_speed + run_speed
-	var actual_slide_buff_multiplier = slide_buff_multiplier + slope_interference
-	var slide_buff = floor_speed * actual_slide_buff_multiplier
+	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
+	var actual_slide_buff_multiplier: float = slide_buff_multiplier + slope_interference
+	var slide_buff: float = floor_speed * actual_slide_buff_multiplier
 	
 	if movement_state == MovementStates.SLIDE:
 		slide_speed += slide_buff * delta
@@ -257,22 +258,22 @@ func calculate_movement_speed(delta) -> void:
 #endregion
 
 #region Stamina
-var stamina: float = 100
-@export var max_stamina: float = 100
+var stamina: float = 100.0
+@export var max_stamina: float = 100.0
 
-@export var idle_stamina_recovery: float = 25
+@export var idle_stamina_recovery: float = 25.0
 @export var crouch_stamina_recovery: float = 17.5
 @export var walk_stamina_recovery: float = 12.5
 @export var run_stamina_recovery: float = 7.5
 @export var in_air_stamina_recovery: float = 2.5
 
-@export var slide_stamina_drain: float = 15
+@export var slide_stamina_drain: float = 7.5
 
-@export var jump_stamina_drain: float = 7.5
-@export var double_jump_stamina_drain: float = 5
+@export var jump_stamina_drain: float = 5.0
+@export var double_jump_stamina_drain: float = 2.5
 @export var wall_jump_stamina_drain: float = 2.5
 
-@export var stamina_safe_zone: float = 10
+@export var stamina_safe_zone: float = 10.0
 func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
 	stamina -= value_of_stamina_drain
 
@@ -327,12 +328,12 @@ func calulcate_movement_inertia(delta) -> void:
 #region Gravity, Jumping and Double Jumping
 @export_category("Gravity")
 # applies gravity to player's body, when it's not on floor
-@export var gravity_force: float = 18
+@export var gravity_force: float = 18.0
 func gravity(delta) -> void:
 	if !is_on_floor():
 		movement_directions.y -= gravity_force * delta
 	else:
-		movement_directions.y = 0
+		movement_directions.y = 0.0
 
 @export_category("Jumping")
 # adds jumping mechanic to player's movement
@@ -354,7 +355,7 @@ func double_jump(delta) -> void:
 	
 	if get_double_jump_state():
 		if movement_directions.y < 0:
-			movement_directions.y = 0
+			movement_directions.y = 0.0
 		
 		movement_directions.y += jump_velocity * double_jump_multiplier
 		can_double_jump = false
@@ -382,7 +383,7 @@ func wall_jumping() -> void:
 		vertical_jump = clampf(vertical_jump, 0.0, jump_velocity * max_vertical_jump_factor)
 		
 		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
-		movement_directions.y = 0
+		movement_directions.y = 0.0
 		movement_directions.y += movement_speed * vertical_jump_factor
 		
 		# direction of wall jump
@@ -447,5 +448,5 @@ func _process(delta: float) -> void:
 	
 	movement_velocity()
 	
-	var movement_states_array = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
+	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
 	%Debug.text = str("Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1))
