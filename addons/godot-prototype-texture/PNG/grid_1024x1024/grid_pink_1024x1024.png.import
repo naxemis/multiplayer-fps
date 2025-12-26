@@ -3,21 +3,22 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://diesht3h74uq6"
-path.s3tc="res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.s3tc.ctex"
+path.bptc="res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.bptc.ctex"
+path.astc="res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.astc.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://addons/godot-prototype-texture/PNG/grid_1024x1024/grid_pink_1024x1024.png"
-dest_files=["res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.s3tc.ctex"]
+dest_files=["res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.bptc.ctex", "res://.godot/imported/grid_pink_1024x1024.png-e24de44addc1016c19cdfa829422dde2.astc.ctex"]
 
 [params]
 
 compress/mode=2
-compress/high_quality=false
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

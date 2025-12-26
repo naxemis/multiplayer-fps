@@ -123,7 +123,7 @@ func get_jump_state() -> bool:
 	return Input.is_action_just_pressed("jump") and is_on_floor() and movement_state != MovementStates.CROUCH and stamina - jump_stamina_drain > 0 and stamina > stamina_safe_zone
 
 func get_double_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and !get_walk_state() and stamina - double_jump_stamina_drain > 0 and stamina > stamina_safe_zone
+	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and stamina - double_jump_stamina_drain > 0 and stamina > stamina_safe_zone
 
 func get_wall_jump_state() -> bool:
 	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0) and stamina - wall_jump_stamina_drain >= 0 and stamina > stamina_safe_zone
@@ -368,7 +368,7 @@ func jump() -> void:
 var can_double_jump: bool = true
 var double_jumping: bool = false
 func double_jump(delta) -> void:
-	if is_on_floor():
+	if is_on_floor() or movement_state == MovementStates.WALLJUMP:
 		can_double_jump = true
 		double_jumping = false
 	
@@ -470,4 +470,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", is_coyote_time_active, snappedf(coyote_time_left, 0.01))
+	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(coyote_time_left, 0.01))
