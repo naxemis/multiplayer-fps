@@ -2,7 +2,7 @@ class_name Player
 extends CharacterBody3D
 
 #region Head and Body rotation
-@export_category("Mouse")
+@export_category("Mouse Movement")
 @export var mouse_sensitivity: float = 0.075
 
 func body_rotation(event) -> void:
@@ -25,8 +25,9 @@ func get_head_rotation(event) -> void:
 		# limits player's head rotation in up and down direction
 		head_rotation.x = clampf(head_rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
 
+@export_category("Camera Freelook")
 var free_look_rotation: Vector3
-@export var free_look_rotation_limit: Vector3 = Vector3(35, 50, 0)
+@export var free_look_rotation_limit: Vector2 = Vector2(35, 50)
 @export var free_look_sensitivity_multiplier: float = 4.0
 func get_free_look_rotation(event) -> void:
 	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
@@ -53,6 +54,7 @@ func set_head_rotation() -> void:
 #endregion
 
 #region Velocity Timeout
+@export_category("Velocity Timeout")
 @export var time_before_velocity_timeout: float = 0.75 # how long player have to walk into wall before timeout
 var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
@@ -85,6 +87,23 @@ func can_player_stand_up() -> void:
 	uncrouch_ray_cast_colliding = $CrouchRayCast.is_colliding()
 	unslide_ray_cast_colliding = $SlideRayCast.is_colliding()
 
+@export_category("Coyote Time")
+@export var default_coyote_time: float = 0.15
+var coyote_time_left: float = 0.0
+var is_coyote_time_active: bool = true
+func coyote_time(delta: float) -> void:
+	coyote_time_left = clampf(coyote_time_left, 0.0, default_coyote_time)
+
+	if is_on_floor():
+		coyote_time_left = default_coyote_time
+	else:
+		coyote_time_left -= delta
+	
+	if coyote_time_left >= 0:
+		is_coyote_time_active = true
+	else:
+		is_coyote_time_active = false
+
 func get_idle_state() -> bool:
 	return (movement_directions.z == 0 and movement_directions.x == 0 and is_on_floor() and !uncrouch_ray_cast_colliding) or velocity_timeout
 
@@ -92,7 +111,7 @@ func get_walk_state() -> bool:
 	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLEJUMP) and !uncrouch_ray_cast_colliding and !velocity_timeout
 
 func get_run_state() -> bool:
-	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding and !velocity_timeout
+	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding and !velocity_timeout and is_coyote_time_active
 
 func get_crouch_state() -> bool:
 	return ((Input.is_action_pressed("crouch") and is_on_floor()) and !unslide_ray_cast_colliding) or uncrouch_ray_cast_colliding
@@ -139,7 +158,7 @@ func set_movement_states() -> void:
 var camera_fov: float
 @export var default_camera_fov: float = 59.0
 
-@export var speed_fov_buff_factor: float = 4.0
+@export var speed_fov_buff_factor: float = 2.5
 var speed_fov_buff: float = 0.0
 func calculate_camera_fov(delta) -> void:
 	# calculate default camera fov
@@ -427,6 +446,8 @@ func _process(delta: float) -> void:
 	
 	can_player_stand_up()
 	
+	coyote_time(delta)
+	
 	set_movement_states()
 	
 	calculate_camera_fov(delta)
@@ -449,4 +470,4 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1))
+	%Debug.text = str("Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", is_coyote_time_active, snappedf(coyote_time_left, 0.01))

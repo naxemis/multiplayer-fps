@@ -13,6 +13,7 @@ config_version=5
 config/name="Multiplayer-FPS"
 run/main_scene="res://scenes/root/Root.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
+boot_splash/bg_color=Color(0.12041845, 0.12041845, 0.12041845, 1)
 config/icon="res://icon.svg"
 
 [display]
