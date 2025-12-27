@@ -1,8 +1,8 @@
 [gd_scene load_steps=24 format=3 uid="uid://l2jckejdxgx6"]
 
-[ext_resource type="Script" path="res://scenes/game/player/Player.gd" id="1_0ivw4"]
-[ext_resource type="Shader" path="res://assets/3d/shaders/Toon.gdshader" id="1_5v8pb"]
-[ext_resource type="Shader" path="res://assets/3d/shaders/Outline.gdshader" id="1_myayq"]
+[ext_resource type="Script" uid="uid://d03nym67iyak3" path="res://scenes/game/player/Player.gd" id="1_0ivw4"]
+[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://assets/3d/shaders/Toon.gdshader" id="1_5v8pb"]
+[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://assets/3d/shaders/Outline.gdshader" id="1_myayq"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -44,6 +44,7 @@ shader_parameter/color_gradient = SubResource("GradientTexture1D_i4nvj")
 shader_parameter/reflection_dot_gradient = SubResource("GradientTexture1D_il4dn")
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_etifa"]
+margin = 0.05
 radius = 0.25
 height = 1.8
 
@@ -312,9 +313,9 @@ tracks/6/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_76wns"]
 _data = {
-"One-Third Lower": SubResource("Animation_ngn7b"),
-"RESET": SubResource("Animation_pnp1o"),
-"Standing": SubResource("Animation_hveih")
+&"One-Third Lower": SubResource("Animation_ngn7b"),
+&"RESET": SubResource("Animation_pnp1o"),
+&"Standing": SubResource("Animation_hveih")
 }
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_s1vnq"]
@@ -333,7 +334,7 @@ nodes/Standing/node = SubResource("AnimationNodeAnimation_b7wn7")
 nodes/Standing/position = Vector2(-240, 120)
 "nodes/State Blend/node" = SubResource("AnimationNodeBlend2_g54bb")
 "nodes/State Blend/position" = Vector2(60, 160)
-node_connections = [&"State Blend", 0, &"Standing", &"State Blend", 1, &"One-Third Lower", &"output", 0, &"State Blend"]
+node_connections = [&"output", 0, &"State Blend", &"State Blend", 0, &"Standing", &"State Blend", 1, &"One-Third Lower"]
 
 [sub_resource type="Gradient" id="Gradient_s4ll6"]
 interpolation_mode = 1
@@ -381,7 +382,7 @@ fov = 59.0
 
 [node name="CollisionAnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_76wns")
+&"": SubResource("AnimationLibrary_76wns")
 }
 
 [node name="CollisionAnimationTree" type="AnimationTree" parent="."]

@@ -277,8 +277,9 @@ func calculate_movement_speed(delta) -> void:
 #endregion
 
 #region Stamina
-var stamina: float = 100.0
+@export_category("Movement Stamina")
 @export var max_stamina: float = 100.0
+@onready var stamina: float = max_stamina
 
 @export var idle_stamina_recovery: float = 25.0
 @export var crouch_stamina_recovery: float = 17.5
@@ -330,10 +331,11 @@ func get_movement_directions() -> void:
 	movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
 	movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
+@export_category("Movement Inertia")
 var inertia_movement_directions: Vector3
 var current_inertia: float
-@export var on_ground_inertia: float = 10.0
-@export var in_air_inertia: float = 5.0
+@export var on_ground_inertia: float = 8.0
+@export var in_air_inertia: float = 4.0
 func calulcate_movement_inertia(delta) -> void:
 	if is_on_floor():
 		current_inertia = on_ground_inertia
@@ -365,10 +367,11 @@ func jump() -> void:
 
 @export_category("Double Jumping")
 @export var double_jump_multiplier: float = 0.7
+@export var can_double_jump_after_wall_jump: bool = false
 var can_double_jump: bool = true
 var double_jumping: bool = false
 func double_jump(delta) -> void:
-	if is_on_floor() or movement_state == MovementStates.WALLJUMP:
+	if is_on_floor() or (movement_state == MovementStates.WALLJUMP and can_double_jump_after_wall_jump):
 		can_double_jump = true
 		double_jumping = false
 	
@@ -388,8 +391,9 @@ func double_jump(delta) -> void:
 #region Wall Jumping
 @export_category("Wall Jumping")
 var wall_jump_direction: Vector3
-@export var vertical_jump_factor: float = 1.5
-@export var max_vertical_jump_factor: float = 1.0
+@export var vertical_jump_multiplier: float = 0.85
+@export var min_vertical_jump: float = 4.0
+@export var max_vertical_jump: float = 7.5
 func reset_wall_jumping_directions() -> void:
 	wall_jump_direction = Vector3(1, 0, 1)
 
@@ -398,17 +402,17 @@ func wall_jumping() -> void:
 		reset_wall_jumping_directions()
 		
 		# calculates and clamps vertical jump force after wall jumping
-		var vertical_jump: float = movement_speed * vertical_jump_factor 
-		vertical_jump = clampf(vertical_jump, 0.0, jump_velocity * max_vertical_jump_factor)
+		var vertical_jump: float = movement_speed * vertical_jump_multiplier 
+		vertical_jump = clampf(vertical_jump, min_vertical_jump, max_vertical_jump)
 		
 		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
 		movement_directions.y = 0.0
-		movement_directions.y += movement_speed * vertical_jump_factor
+		movement_directions.y += vertical_jump
 		
 		# direction of wall jump
-		if !Input.is_action_pressed("change_wall_jump_direction"): # player wan't to "bounce" from a wall
+		if !Input.is_action_pressed("change_wall_jump_direction"): # player wants to jump in same direction he jumped from
 			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
-		else: # player want to jump in same direction he jumped from
+		else: # player wants to "bounce" from a wall
 			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * -movement_directions)
 		
 		one_time_stamina_drain(wall_jump_stamina_drain)
