@@ -1,7 +1,7 @@
 [gd_scene load_steps=26 format=3 uid="uid://ewmbl2f6trag"]
 
 [ext_resource type="PackedScene" uid="uid://l2jckejdxgx6" path="res://scenes/game/player/Player.tscn" id="1_oslhd"]
-[ext_resource type="Material" uid="uid://b4v83xbbpd4lm" path="res://assets/3d/shaders/Default Material.tres" id="1_v4xg3"]
+[ext_resource type="Material" uid="uid://b4v83xbbpd4lm" path="res://shaders/Default Material.tres" id="1_v4xg3"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_go5w5"]
 
