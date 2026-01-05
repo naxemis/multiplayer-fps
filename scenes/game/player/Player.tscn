@@ -1,8 +1,8 @@
 [gd_scene load_steps=24 format=3 uid="uid://l2jckejdxgx6"]
 
-[ext_resource type="Script" uid="uid://d03nym67iyak3" path="res://scenes/game/player/Player.gd" id="1_0ivw4"]
-[ext_resource type="Shader" uid="uid://bh76mw6aqlhe" path="res://assets/3d/shaders/Toon.gdshader" id="1_5v8pb"]
-[ext_resource type="Shader" uid="uid://cv2gtnp1y41oe" path="res://assets/3d/shaders/Outline.gdshader" id="1_myayq"]
+[ext_resource type="Script" uid="uid://d03nym67iyak3" path="res://scenes/game/player/player.gd" id="1_0ivw4"]
+[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/toon.gdshader" id="1_5v8pb"]
+[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/outline.gdshader" id="1_myayq"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25

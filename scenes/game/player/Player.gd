@@ -77,7 +77,7 @@ func get_velocity_timeout(delta) -> void:
 
 #region Movement States
 # identifies in what movement state player is currently in
-enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLEJUMP, WALLJUMP}
+enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP}
 
 var movement_state: int = MovementStates.IDLE
 
@@ -108,7 +108,7 @@ func get_idle_state() -> bool:
 	return (movement_directions.z == 0 and movement_directions.x == 0 and is_on_floor() and !uncrouch_ray_cast_colliding) or velocity_timeout
 
 func get_walk_state() -> bool:
-	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLEJUMP) and !uncrouch_ray_cast_colliding and !velocity_timeout
+	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLE_JUMP) and !uncrouch_ray_cast_colliding and !velocity_timeout
 
 func get_run_state() -> bool:
 	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding and !velocity_timeout
@@ -135,9 +135,9 @@ func set_movement_states() -> void:
 	if get_jump_state():
 		change_movement_state(MovementStates.JUMP)
 	elif get_wall_jump_state():
-		change_movement_state(MovementStates.WALLJUMP)
+		change_movement_state(MovementStates.WALL_JUMP)
 	elif get_double_jump_state():
-		change_movement_state(MovementStates.DOUBLEJUMP)
+		change_movement_state(MovementStates.DOUBLE_JUMP)
 	elif get_slide_state():
 		if stamina > stamina_safe_zone: # player can only slide if stamina is greater than it's safe zone
 			change_movement_state(MovementStates.SLIDE)
@@ -242,7 +242,7 @@ func calculate_movement_speed(delta) -> void:
 	
 	if movement_state == MovementStates.RUN:
 		run_speed += run_speed_increase * delta
-	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLEJUMP or movement_state == MovementStates.WALLJUMP or movement_state == MovementStates.SLIDE:
+	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLE_JUMP or movement_state == MovementStates.WALL_JUMP or movement_state == MovementStates.SLIDE:
 		pass
 	elif movement_state == MovementStates.WALK:
 		run_speed -= run_walk_decrease * delta
@@ -261,7 +261,7 @@ func calculate_movement_speed(delta) -> void:
 	
 	if movement_state == MovementStates.SLIDE:
 		slide_speed += slide_buff * delta
-	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLEJUMP or movement_state == MovementStates.WALLJUMP:
+	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLE_JUMP or movement_state == MovementStates.WALL_JUMP:
 		pass
 	elif movement_state == MovementStates.RUN:
 		slide_speed -= floor_speed * slide_run_decrease * delta
@@ -374,7 +374,7 @@ func jump() -> void:
 var can_double_jump: bool = true
 var double_jumping: bool = false
 func double_jump(delta) -> void:
-	if is_on_floor() or (movement_state == MovementStates.WALLJUMP and can_double_jump_after_wall_jump):
+	if is_on_floor() or (movement_state == MovementStates.WALL_JUMP and can_double_jump_after_wall_jump):
 		can_double_jump = true
 		double_jumping = false
 	
@@ -429,7 +429,7 @@ func movement_velocity() -> void:
 	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
 	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
 	
-	if movement_state != MovementStates.WALLJUMP:
+	if movement_state != MovementStates.WALL_JUMP:
 		velocity = (transform_x + transform_z) * movement_speed + transform_y
 	else:
 		velocity = wall_jump_direction * movement_speed + transform_y
