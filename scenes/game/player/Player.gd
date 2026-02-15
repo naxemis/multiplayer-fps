@@ -11,9 +11,9 @@ func body_rotation(event) -> void:
 		self.rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
 		
 		# wraps player's body rotation to left and right direction
-		const rotation_min: float = deg_to_rad(0.0)
-		const rotation_max: float = deg_to_rad(360.0)
-		self.rotation.y = wrapf(self.rotation.y, rotation_min, rotation_max)
+		const ROTATION_MIN: float = deg_to_rad(0.0)
+		const ROTATION_MAX: float = deg_to_rad(360.0)
+		self.rotation.y = wrapf(self.rotation.y, ROTATION_MIN, ROTATION_MAX)
 
 var head_rotation: Vector3
 @export var head_rotation_limit: float = 90.0
