@@ -1,7 +1,7 @@
-[gd_resource type="ShaderMaterial" load_steps=8 format=3 uid="uid://b4v83xbbpd4lm"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://b4v83xbbpd4lm"]
 
-[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/outline.gdshader" id="1_f8i54"]
-[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/toon.gdshader" id="2_74e3a"]
+[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_f8i54"]
+[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/shared/Toon.gdshader" id="2_74e3a"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_cdiri"]
 render_priority = 0

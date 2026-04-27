@@ -1,38 +1,9 @@
-[gd_scene load_steps=24 format=3 uid="uid://l2jckejdxgx6"]
+[gd_scene format=3 uid="uid://l2jckejdxgx6"]
 
-[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/toon.gdshader" id="1_5v8pb"]
-[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/outline.gdshader" id="1_myayq"]
-
-[sub_resource type="GDScript" id="GDScript_t5cse"]
-script/source = "extends CharacterBody3D
-
-
-const SPEED = 5.0
-const JUMP_VELOCITY = 4.5
-
-
-func _physics_process(delta: float) -> void:
-	# Add the gravity.
-	if not is_on_floor():
-		velocity += get_gravity() * delta
-
-	# Handle jump.
-	if Input.is_action_just_pressed(\"ui_accept\") and is_on_floor():
-		velocity.y = JUMP_VELOCITY
-
-	# Get the input direction and handle the movement/deceleration.
-	# As good practice, you should replace UI actions with custom gameplay actions.
-	var input_dir := Input.get_vector(\"ui_left\", \"ui_right\", \"ui_up\", \"ui_down\")
-	var direction := (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	if direction:
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
-	else:
-		velocity.x = move_toward(velocity.x, 0, SPEED)
-		velocity.z = move_toward(velocity.z, 0, SPEED)
-
-	move_and_slide()
-"
+[ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/shared/Toon.gdshader" id="1_5v8pb"]
+[ext_resource type="Script" uid="uid://efyrk30thy3j" path="res://scripts/player/player.gd" id="1_lvxji"]
+[ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
+[ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -386,55 +357,53 @@ gradient = SubResource("Gradient_qph30")
 width = 1280
 height = 5
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" unique_id=71975112]
 collision_layer = 2
 floor_max_angle = 1.39626
-script = SubResource("GDScript_t5cse")
+script = ExtResource("1_lvxji")
 
-[node name="Body" type="MeshInstance3D" parent="."]
+[node name="Body" type="MeshInstance3D" parent="." unique_id=1685405249]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 visible = false
 layers = 2
 mesh = SubResource("CapsuleMesh_7dslh")
 surface_material_override/0 = SubResource("ShaderMaterial_viwht")
 
-[node name="Collision" type="CollisionShape3D" parent="."]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=665778537]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_etifa")
 
-[node name="Head" type="Node3D" parent="."]
+[node name="Head" type="Node3D" parent="." unique_id=1543780031]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
-[node name="Camera" type="Camera3D" parent="Head"]
+[node name="Camera" type="Camera3D" parent="Head" unique_id=710031663]
 unique_name_in_owner = true
 fov = 59.0
 
-[node name="CollisionAnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_76wns")
-}
+[node name="CollisionAnimationPlayer" type="AnimationPlayer" parent="." unique_id=1946681746]
+libraries/ = SubResource("AnimationLibrary_76wns")
 
-[node name="CollisionAnimationTree" type="AnimationTree" parent="."]
+[node name="CollisionAnimationTree" type="AnimationTree" parent="." unique_id=105125637]
 tree_root = SubResource("AnimationNodeBlendTree_th03g")
 anim_player = NodePath("../CollisionAnimationPlayer")
 "parameters/State Blend/blend_amount" = 0.0
 
-[node name="Debug" type="Label" parent="."]
+[node name="Debug" type="Label" parent="." unique_id=331414564]
 unique_name_in_owner = true
 offset_right = 40.0
 offset_bottom = 23.0
 theme_override_font_sizes/font_size = 12
 
-[node name="CrouchRayCast" type="RayCast3D" parent="."]
+[node name="CrouchRayCast" type="RayCast3D" parent="." unique_id=2096251018]
 transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 1.2, 0)
 target_position = Vector3(0, -0.6, 0)
 
-[node name="SlideRayCast" type="RayCast3D" parent="."]
+[node name="SlideRayCast" type="RayCast3D" parent="." unique_id=656320279]
 transform = Transform3D(1, 0, 0, 0, -1, 8.74228e-08, 0, -8.74228e-08, -1, 0, 0.6, 0)
 target_position = Vector3(0, -0.6, 0)
 
-[node name="StaminaBar" type="TextureProgressBar" parent="."]
+[node name="StaminaBar" type="TextureProgressBar" parent="." unique_id=1781604602]
 unique_name_in_owner = true
 offset_top = 715.0
 offset_right = 1280.0
@@ -444,3 +413,7 @@ value = 100.0
 fill_mode = 6
 texture_under = SubResource("GradientTexture2D_k1exq")
 texture_progress = SubResource("GradientTexture2D_vrsjq")
+
+[node name="CameraController" type="Node" parent="." unique_id=41998332]
+script = ExtResource("3_gmlin")
+mouse_sensitivity = 0.571

@@ -1,99 +1,13 @@
 class_name Player
 extends CharacterBody3D
 
-# TODO (REFACTOR PLAN):
-# Recommended components location: `scripts/player/components`
-# Refactor steps (do small increments and test after each):
-# 1) Create folder: `scripts/player/components`.
-# 2) Add components one-by-one and move logic from this file into their scripts.
-# 3) Suggested components (file => responsibility):
-#    - CameraController.gd
-#        * Responsibility: body yaw, head pitch, freelook, free_look_return, camera FOV
-#        * Exports: mouse_sensitivity, head_rotation_limit, free_look_limits, free_look_return_speed, default_camera_fov, speed_fov_buff_factor
-#        * API: handle_input(event), process(delta, movement_speed), set_references(head_node, camera_node)
-#    - MovementStateMachine.gd
-#        * Responsibility: all get_*_state() checks, coyote time, set_movement_states(), emit signal state_changed(new_state)
-#        * API: update(context: Dictionary) -> int (new_state); signal: state_changed(new_state)
-#    - MovementController.gd
-#        * Responsibility: calculate_movement_speed, inertia, slide/run adjustments, compute_velocity(context) -> Vector3
-#        * API: process(delta, context), compute_velocity(context) -> Vector3
-#    - JumpController.gd (optional)
-#        * Responsibility: gravity, jump, double jump, wall jump (can be merged with MovementController)
-#    - StaminaManager.gd
-#        * Responsibility: track stamina, drain/recover, update %StaminaBar UI or emit stamina_changed(value)
-#        * API: drain_once(amount), process(delta, movement_state, is_on_floor)
-#    - CollisionAnimator.gd
-#        * Responsibility: collision shape blending / AnimationTree blend_amount
-#        * API: process(delta, movement_state)
-#    - VelocityTimeoutManager.gd
-#        * Responsibility: is_blocked_on_wall(), timeout timer
-#        * API: update(delta, is_on_floor, is_on_wall, velocity) -> Dictionary{timeout: bool, time_left: float}
-#    - InputHandler.gd (optional)
-#        * Responsibility: centralize Input polling and emit action events (jump_pressed, run_pressed etc.)
-# 4) Integration rules:
-#    - Keep physics (`move_and_slide()`) in `Player` (CharacterBody3D).
-#    - Recommended pattern: attach components as children nodes (e.g. `Player/Components/CameraController`) and assign their scripts.
-#    - Each component: use `class_name`, export vars for tweakable params, provide setup/set_references(...) and a process(delta) or update(context) method.
-#    - Communication: Player calls component methods; components emit signals for events other systems should react to.
-#    - Test incrementally after moving each small piece of logic (start with CameraController freelook/FOV).
-# 5) Example APIs:
-#    - CameraController: handle_input(event), process(delta, movement_speed), set_references(head_node, camera_node)
-#    - MovementStateMachine: update(context: Dictionary) -> int (new_state), signal state_changed(new_state)
-#    - MovementController: compute_velocity(context) -> Vector3
+# TODO (REFACTOR PLAN): 
+# refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
+# for example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
+# and then have the Player script use those components to manage the player's behavior. 
+# This will make the code more organized, easier to read, and maintainable in the long run.
 #
-# The rest of the file keeps the original code. See internal "See REFACTOR PLAN" notes for where to move pieces.
-
-#region Head and Body rotation
-@export_category("Mouse Movement")
-@export var mouse_sensitivity: float = 0.075
-
-func body_rotation(event) -> void:
-	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		# connects mouse movement to head rotation
-		self.rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity)
-		
-		# wraps player's body rotation to left and right direction
-		const ROTATION_MIN: float = deg_to_rad(0.0)
-		const ROTATION_MAX: float = deg_to_rad(360.0)
-		self.rotation.y = wrapf(self.rotation.y, ROTATION_MIN, ROTATION_MAX)
-
-var head_rotation: Vector3
-@export var head_rotation_limit: float = 90.0
-func get_head_rotation(event) -> void:
-	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		# connects mouse movement to free look rotation
-		head_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity)
-		
-		# limits player's head rotation in up and down direction
-		head_rotation.x = clampf(head_rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
-
-@export_category("Camera Freelook")
-var free_look_rotation: Vector3
-@export var free_look_rotation_limit: Vector2 = Vector2(35, 50)
-@export var free_look_sensitivity_multiplier: float = 4.0
-func get_free_look_rotation(event) -> void:
-	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
-		# connects mouse movement to free look rotation
-		free_look_rotation.x -= event.relative.y * deg_to_rad(mouse_sensitivity * free_look_sensitivity_multiplier)
-		free_look_rotation.y -= event.relative.x * deg_to_rad(mouse_sensitivity * free_look_sensitivity_multiplier)
-		
-		# limits player's free look rotation in up and down direction
-		free_look_rotation.x = clampf(free_look_rotation.x, -deg_to_rad(free_look_rotation_limit.x), deg_to_rad(free_look_rotation_limit.x))
-		free_look_rotation.y = clampf(free_look_rotation.y, -deg_to_rad(free_look_rotation_limit.y), deg_to_rad(free_look_rotation_limit.y))
-
-@export var free_look_return_speed: float = 12.5
-func free_look_return(delta) -> void:
-	if !Input.is_action_pressed("free_look"):
-		free_look_rotation.x = lerpf(free_look_rotation.x, 0.0, free_look_return_speed * delta)
-		free_look_rotation.y = lerpf(free_look_rotation.y, 0.0, free_look_return_speed * delta)
-
-# combines head_rotation variable value and free_look_rotation variable value and sets it to %Head.rotation
-func set_head_rotation() -> void:
-	%Head.rotation = head_rotation + free_look_rotation # combines values
-	
-	# limits player's head rotation in up and down direction
-	%Head.rotation.x = clampf(%Head.rotation.x, -deg_to_rad(head_rotation_limit), deg_to_rad(head_rotation_limit))
-#endregion
+# https://github.com/naxemis/multiplayer-fps/issues/1
 
 #region Velocity Timeout
 @export_category("Velocity Timeout")
@@ -193,27 +107,6 @@ func set_movement_states() -> void:
 		change_movement_state(MovementStates.WALK)
 	elif get_idle_state():
 		change_movement_state(MovementStates.IDLE)
-#endregion
-
-#region Camera FOV
-@export_category("Camera FOV")
-var camera_fov: float
-@export var default_camera_fov: float = 59.0
-
-@export var speed_fov_buff_factor: float = 2.5
-var speed_fov_buff: float = 0.0
-func calculate_camera_fov(delta) -> void:
-	# calculate default camera fov
-	var base_camera_fov: float = default_camera_fov - ((walk_speed + crouch_speed) * speed_fov_buff_factor)
-	
-	# calculate speed fov buff
-	speed_fov_buff = movement_speed * speed_fov_buff_factor
-	
-	# combine fov buffs
-	camera_fov = base_camera_fov + speed_fov_buff
-	
-	# interpolate camera fov
-	%Camera.fov = camera_fov
 #endregion
 
 #region Collision Shape Animations
@@ -479,18 +372,17 @@ func movement_velocity() -> void:
 	
 	move_and_slide()
 
-func _ready():
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+@onready var camera_controller: CameraController = $CameraController
 
 func _unhandled_input(event: InputEvent) -> void:
-	body_rotation(event)
-	get_head_rotation(event)
-	get_free_look_rotation(event)
+	camera_controller.handle_input(event)
+
+func _ready():
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	camera_controller.set_references(%Head, %Camera)
 
 func _process(delta: float) -> void:
-	free_look_return(delta)
-	set_head_rotation()
-	
 	get_velocity_timeout(delta)
 	
 	can_player_stand_up()
@@ -498,8 +390,6 @@ func _process(delta: float) -> void:
 	coyote_time(delta)
 	
 	set_movement_states()
-	
-	calculate_camera_fov(delta)
 	
 	collision_shape_animations(delta)
 	
@@ -518,5 +408,7 @@ func _process(delta: float) -> void:
 	
 	movement_velocity()
 	
+	camera_controller.process(delta, movement_speed)
+		
 	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
 	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(coyote_time_left, 0.01))
