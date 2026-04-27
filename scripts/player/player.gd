@@ -1,47 +1,13 @@
 class_name Player
 extends CharacterBody3D
 
-# TODO (REFACTOR PLAN):
-# Recommended components location: `scripts/player/components`
-# Refactor steps (do small increments and test after each):
-# 1) Create folder: `scripts/player/components`.
-# 2) Add components one-by-one and move logic from this file into their scripts.
-# 3) Suggested components (file => responsibility):
-#    - CameraController.gd
-#        * Responsibility: body yaw, head pitch, freelook, free_look_return, camera FOV
-#        * Exports: mouse_sensitivity, head_rotation_limit, free_look_limits, free_look_return_speed, default_camera_fov, speed_fov_buff_factor
-#        * API: handle_input(event), process(delta, movement_speed), set_references(head_node, camera_node)
-#    - MovementStateMachine.gd
-#        * Responsibility: all get_*_state() checks, coyote time, set_movement_states(), emit signal state_changed(new_state)
-#        * API: update(context: Dictionary) -> int (new_state); signal: state_changed(new_state)
-#    - MovementController.gd
-#        * Responsibility: calculate_movement_speed, inertia, slide/run adjustments, compute_velocity(context) -> Vector3
-#        * API: process(delta, context), compute_velocity(context) -> Vector3
-#    - JumpController.gd (optional)
-#        * Responsibility: gravity, jump, double jump, wall jump (can be merged with MovementController)
-#    - StaminaManager.gd
-#        * Responsibility: track stamina, drain/recover, update %StaminaBar UI or emit stamina_changed(value)
-#        * API: drain_once(amount), process(delta, movement_state, is_on_floor)
-#    - CollisionAnimator.gd
-#        * Responsibility: collision shape blending / AnimationTree blend_amount
-#        * API: process(delta, movement_state)
-#    - VelocityTimeoutManager.gd
-#        * Responsibility: is_blocked_on_wall(), timeout timer
-#        * API: update(delta, is_on_floor, is_on_wall, velocity) -> Dictionary{timeout: bool, time_left: float}
-#    - InputHandler.gd (optional)
-#        * Responsibility: centralize Input polling and emit action events (jump_pressed, run_pressed etc.)
-# 4) Integration rules:
-#    - Keep physics (`move_and_slide()`) in `Player` (CharacterBody3D).
-#    - Recommended pattern: attach components as children nodes (e.g. `Player/Components/CameraController`) and assign their scripts.
-#    - Each component: use `class_name`, export vars for tweakable params, provide setup/set_references(...) and a process(delta) or update(context) method.
-#    - Communication: Player calls component methods; components emit signals for events other systems should react to.
-#    - Test incrementally after moving each small piece of logic (start with CameraController freelook/FOV).
-# 5) Example APIs:
-#    - CameraController: handle_input(event), process(delta, movement_speed), set_references(head_node, camera_node)
-#    - MovementStateMachine: update(context: Dictionary) -> int (new_state), signal state_changed(new_state)
-#    - MovementController: compute_velocity(context) -> Vector3
+# TODO (REFACTOR PLAN): 
+# refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
+# for example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
+# and then have the Player script use those components to manage the player's behavior. 
+# This will make the code more organized, easier to read, and maintainable in the long run.
 #
-# The rest of the file keeps the original code. See internal "See REFACTOR PLAN" notes for where to move pieces.
+# https://github.com/naxemis/multiplayer-fps/issues/1
 
 #region Velocity Timeout
 @export_category("Velocity Timeout")
