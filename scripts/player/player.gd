@@ -31,84 +31,6 @@ func get_velocity_timeout(delta) -> void:
 		velocity_timeout = false
 #endregion
 
-#region Movement States
-# identifies in what movement state player is currently in
-enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP}
-
-var movement_state: int = MovementStates.IDLE
-
-@onready var uncrouch_ray_cast_colliding: bool
-@onready var unslide_ray_cast_colliding: bool
-func can_player_stand_up() -> void:
-	uncrouch_ray_cast_colliding = $CrouchRayCast.is_colliding()
-	unslide_ray_cast_colliding = $SlideRayCast.is_colliding()
-
-@export_category("Coyote Time")
-@export var default_coyote_time: float = 0.15
-var coyote_time_left: float = 0.0
-var is_coyote_time_active: bool = true
-func coyote_time(delta: float) -> void:
-	coyote_time_left = clampf(coyote_time_left, 0.0, default_coyote_time)
-
-	if is_on_floor():
-		coyote_time_left = default_coyote_time
-	else:
-		coyote_time_left -= delta
-	
-	if coyote_time_left >= 0:
-		is_coyote_time_active = true
-	else:
-		is_coyote_time_active = false
-
-func get_idle_state() -> bool:
-	return (movement_directions.z == 0 and movement_directions.x == 0 and is_on_floor() and !uncrouch_ray_cast_colliding) or velocity_timeout
-
-func get_walk_state() -> bool:
-	return (movement_directions.z != 0 or movement_directions.x != 0) and is_on_floor() and (movement_state != MovementStates.JUMP or movement_state != MovementStates.DOUBLE_JUMP) and !uncrouch_ray_cast_colliding and !velocity_timeout
-
-func get_run_state() -> bool:
-	return Input.is_action_pressed("run") and movement_directions.z < 0 and is_on_floor() and !uncrouch_ray_cast_colliding and !velocity_timeout
-
-func get_crouch_state() -> bool:
-	return ((Input.is_action_pressed("crouch") and is_on_floor()) and !unslide_ray_cast_colliding) or uncrouch_ray_cast_colliding
-
-func get_slide_state() -> bool:
-	return Input.is_action_pressed("slide") and is_on_floor() and movement_directions.z < 0 and !velocity_timeout and stamina > 0
-
-func get_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and (is_on_floor() or is_coyote_time_active) and movement_state != MovementStates.CROUCH and stamina - jump_stamina_drain > 0 and stamina > stamina_safe_zone
-
-func get_double_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and !is_on_floor() and can_double_jump and stamina - double_jump_stamina_drain > 0 and stamina > stamina_safe_zone and !is_coyote_time_active
-
-func get_wall_jump_state() -> bool:
-	return Input.is_action_just_pressed("jump") and is_on_wall_only() and (movement_directions.z != 0 or movement_directions.x != 0) and stamina - wall_jump_stamina_drain >= 0 and stamina > stamina_safe_zone
-
-func change_movement_state(new_movement_state) -> void:
-	movement_state = new_movement_state
-
-func set_movement_states() -> void:
-	if get_jump_state():
-		change_movement_state(MovementStates.JUMP)
-	elif get_wall_jump_state():
-		change_movement_state(MovementStates.WALL_JUMP)
-	elif get_double_jump_state():
-		change_movement_state(MovementStates.DOUBLE_JUMP)
-	elif get_slide_state():
-		if stamina > stamina_safe_zone: # player can only slide if stamina is greater than it's safe zone
-			change_movement_state(MovementStates.SLIDE)
-		else: # but if player is already sliding when stamina is under it's safe zone, then don't change his movement_state
-			movement_state = movement_state
-	elif get_run_state():
-		change_movement_state(MovementStates.RUN)
-	elif get_crouch_state():
-		change_movement_state(MovementStates.CROUCH)
-	elif get_walk_state():
-		change_movement_state(MovementStates.WALK)
-	elif get_idle_state():
-		change_movement_state(MovementStates.IDLE)
-#endregion
-
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
 var collision_blend_amount: float = 0.0
@@ -122,9 +44,9 @@ var amount_above_crouch_clamp: float
 func collision_shape_animations(delta) -> void:
 	collision_blend_amount = clampf(collision_blend_amount, 0.0, slide_blend_amount)
 	
-	if movement_state == MovementStates.CROUCH:
+	if movement_state_machine._current_state == movement_state_machine.MovementStates.CROUCH:
 		collision_blend_amount = lerpf(collision_blend_amount, crouch_blend_amount, crouch_animation_speed * delta)
-	elif movement_state == MovementStates.SLIDE:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.SLIDE:
 		collision_blend_amount = lerpf(collision_blend_amount, slide_blend_amount, slide_animation_speed * delta)
 	else:
 		if collision_blend_amount <= crouch_blend_amount:
@@ -167,7 +89,7 @@ var slide_speed: float = 0.0
 
 func calculate_movement_speed(delta) -> void:
 	# walk speed
-	if movement_state != MovementStates.CROUCH:
+	if movement_state_machine._current_state != movement_state_machine.MovementStates.CROUCH:
 		current_walk_speed = walk_speed
 	else:
 		current_walk_speed = 0.0
@@ -175,11 +97,11 @@ func calculate_movement_speed(delta) -> void:
 	# run speed
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
-	if movement_state == MovementStates.RUN:
+	if movement_state_machine._current_state == movement_state_machine.MovementStates.RUN:
 		run_speed += run_speed_increase * delta
-	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLE_JUMP or movement_state == MovementStates.WALL_JUMP or movement_state == MovementStates.SLIDE:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.DOUBLE_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.SLIDE:
 		pass
-	elif movement_state == MovementStates.WALK:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.WALK:
 		run_speed -= run_walk_decrease * delta
 	else:
 		run_speed -= run_crouch_decrease * delta
@@ -194,13 +116,13 @@ func calculate_movement_speed(delta) -> void:
 	var actual_slide_buff_multiplier: float = slide_buff_multiplier + slope_interference
 	var slide_buff: float = floor_speed * actual_slide_buff_multiplier
 	
-	if movement_state == MovementStates.SLIDE:
+	if movement_state_machine._current_state == movement_state_machine.MovementStates.SLIDE:
 		slide_speed += slide_buff * delta
-	elif movement_state == MovementStates.JUMP or movement_state == MovementStates.DOUBLE_JUMP or movement_state == MovementStates.WALL_JUMP:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.DOUBLE_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP:
 		pass
-	elif movement_state == MovementStates.RUN:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.RUN:
 		slide_speed -= floor_speed * slide_run_decrease * delta
-	elif movement_state == MovementStates.WALK:
+	elif movement_state_machine._current_state == movement_state_machine.MovementStates.WALK:
 		slide_speed -= floor_speed * slide_walk_decrease * delta
 	else:
 		slide_speed -= slide_crouch_decrease * delta
@@ -215,6 +137,13 @@ func calculate_movement_speed(delta) -> void:
 @export_category("Movement Stamina")
 @export var max_stamina: float = 100.0
 @onready var stamina: float = max_stamina
+
+var stamina_recovery = {
+	movement_state_machine.MovementStates.IDLE: idle_stamina_recovery,
+	movement_state_machine.MovementStates.CROUCH: crouch_stamina_recovery,
+	movement_state_machine.MovementStates.WALK: walk_stamina_recovery,
+	movement_state_machine.MovementStates.RUN: run_stamina_recovery,
+}
 
 @export var idle_stamina_recovery: float = 25.0
 @export var crouch_stamina_recovery: float = 17.5
@@ -235,16 +164,16 @@ func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
 func calculate_stamina(delta) -> void:
 	stamina = clampf(stamina, 0.0, max_stamina)
 	
-	match movement_state:
-		MovementStates.IDLE:
+	match movement_state_machine._current_state:
+		movement_state_machine.MovementStates.IDLE:
 			stamina += idle_stamina_recovery * delta
-		MovementStates.CROUCH:
+		movement_state_machine.MovementStates.CROUCH:
 			stamina += crouch_stamina_recovery * delta
-		MovementStates.WALK:
+		movement_state_machine.MovementStates.WALK:
 			stamina += walk_stamina_recovery * delta
-		MovementStates.RUN:
+		movement_state_machine.MovementStates.RUN:
 			stamina += run_stamina_recovery * delta
-		MovementStates.SLIDE:
+		movement_state_machine.MovementStates.SLIDE:
 			stamina -= slide_stamina_drain * delta
 	
 	if !is_on_floor():
@@ -295,11 +224,11 @@ func gravity(delta) -> void:
 # adds jumping mechanic to player's movement
 @export var jump_velocity: float = 7.5
 func jump() -> void:
-	if get_jump_state():
+	if movement_state_machine._can_enter_jump():
 		movement_directions.y = 0
 		movement_directions.y += jump_velocity
 		
-		coyote_time_left = 0
+		movement_state_machine.coyote_time_left = 0
 		
 		one_time_stamina_drain(jump_stamina_drain)
 
@@ -309,11 +238,11 @@ func jump() -> void:
 var can_double_jump: bool = true
 var double_jumping: bool = false
 func double_jump(delta) -> void:
-	if is_on_floor() or (movement_state == MovementStates.WALL_JUMP and can_double_jump_after_wall_jump):
+	if is_on_floor() or (movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP and can_double_jump_after_wall_jump):
 		can_double_jump = true
 		double_jumping = false
 	
-	if get_double_jump_state():
+	if movement_state_machine._can_enter_double_jump():
 		if movement_directions.y < 0:
 			movement_directions.y = 0.0
 		
@@ -336,7 +265,7 @@ func reset_wall_jumping_directions() -> void:
 	wall_jump_direction = Vector3(1, 0, 1)
 
 func wall_jumping() -> void:
-	if get_wall_jump_state():
+	if movement_state_machine._can_enter_wall_jump():
 		reset_wall_jumping_directions()
 		
 		# calculates and clamps vertical jump force after wall jumping
@@ -364,7 +293,7 @@ func movement_velocity() -> void:
 	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
 	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
 	
-	if movement_state != MovementStates.WALL_JUMP:
+	if movement_state_machine._current_state != movement_state_machine.MovementStates.WALL_JUMP:
 		velocity = (transform_x + transform_z) * movement_speed + transform_y
 	else:
 		velocity = wall_jump_direction * movement_speed + transform_y
@@ -372,7 +301,31 @@ func movement_velocity() -> void:
 	
 	move_and_slide()
 
+func _on_state_changed(new_state):
+	var states := movement_state_machine.MovementStates
+	
+	match new_state:
+		states.IDLE:
+			print("Entered IDLE state")
+		states.WALK:
+			print("Entered WALK state")
+		states.RUN:
+			print("Entered RUN state")
+		states.CROUCH:
+			print("Entered CROUCH state")
+		states.SLIDE:
+			print("Entered SLIDE state")
+		states.JUMP:
+			print("Entered JUMP state")
+		states.DOUBLE_JUMP:
+			print("Entered DOUBLE JUMP state")
+		states.WALL_JUMP:
+			print("Entered WALL JUMP state")
+		states.FALLING:
+			print("Entered FALLING state")
+
 @onready var camera_controller: CameraController = $CameraController
+@onready var movement_state_machine: MovementStateMachine = $MovementStateMachine
 
 func _unhandled_input(event: InputEvent) -> void:
 	camera_controller.handle_input(event)
@@ -380,16 +333,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
-	camera_controller.set_references(%Head, %Camera)
+	camera_controller.set_references(self, %Head, %Camera)
+	movement_state_machine.set_references(self)
+	
+	movement_state_machine.state_changed.connect(_on_state_changed)
 
 func _process(delta: float) -> void:
 	get_velocity_timeout(delta)
-	
-	can_player_stand_up()
-	
-	coyote_time(delta)
-	
-	set_movement_states()
 	
 	collision_shape_animations(delta)
 	
@@ -409,6 +359,7 @@ func _process(delta: float) -> void:
 	movement_velocity()
 	
 	camera_controller.process(delta, movement_speed)
+	movement_state_machine.process(delta)
 		
-	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP"]
-	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(coyote_time_left, 0.01))
+	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP", "FALLING"]
+	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(movement_state_machine.coyote_time_left, 0.01))

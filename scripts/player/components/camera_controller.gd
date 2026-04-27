@@ -36,12 +36,12 @@ var _base_head_rotation: Vector2
 var _free_look_rotation: Vector2
 var _head_rotation: Vector2
 var _camera_fov: float
+var _player: Player
 var _head: Node3D
 var _camera: Camera3D
 
-@onready var _body: Player = get_parent()
-
-func set_references(head_node: Node3D, camera_node: Camera3D) -> void:
+func set_references(player: Player, head_node: Node3D, camera_node: Camera3D) -> void:
+	_player = player
 	_head = head_node
 	_camera = camera_node
 
@@ -65,12 +65,12 @@ func get_head_rotation() -> Vector2:
 
 func _body_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		_body.rotation.y -= event.relative.x * _mouse_sensitivity_rad
+		_player.rotation.y -= event.relative.x * _mouse_sensitivity_rad
 
 		const ROTATION_MIN: float = 0.0
 		const ROTATION_MAX: float = TAU
 		
-		_body.rotation.y = wrapf(_body.rotation.y, ROTATION_MIN, ROTATION_MAX)
+		_player.rotation.y = wrapf(_player.rotation.y, ROTATION_MIN, ROTATION_MAX)
 
 func _calculate_base_head_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
@@ -98,8 +98,9 @@ func _calculate_head_rotation(base, free_look) -> void:
 	_head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:
+	var base_camera_fov: float = default_camera_fov - ((_player.walk_speed + _player.crouch_speed) * fov_speed_buff_factor)
 	var fov_speed_buff: float = movement_speed * fov_speed_buff_factor
 	
-	_camera_fov = default_camera_fov + fov_speed_buff
+	_camera_fov = base_camera_fov + fov_speed_buff
 	
 	_camera.fov = lerpf(_camera.fov, _camera_fov, fov_interpolation_speed * delta)
