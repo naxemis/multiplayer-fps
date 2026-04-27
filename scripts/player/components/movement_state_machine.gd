@@ -49,23 +49,13 @@ func _make_ray_cast(pos: Vector3, target: Vector3) -> RayCast3D:
 	return ray_cast
 
 func _create_ray_casts() -> bool:
-	_uncrouch_ray_cast = _make_ray_cast(Vector3(0, 1.2, 0), Vector3(0, -0.6, 0))
-	_unslide_ray_cast = _make_ray_cast(Vector3(0, 0.6, 0), Vector3(0, -0.6, 0))
+	_uncrouch_ray_cast = _make_ray_cast(Vector3(0, 1.2, 0), Vector3(0, 0.6, 0))
+	_unslide_ray_cast = _make_ray_cast(Vector3(0, 0.6, 0), Vector3(0, 0.6, 0))
 	return true
 
 func _player_stand_up_check() -> void:
 	_uncrouch_ray_cast_colliding = _uncrouch_ray_cast.is_colliding()
 	_unslide_ray_cast_colliding = _unslide_ray_cast.is_colliding()
-	
-var coyote_time_left: float = 0.0
-var coyote_time_active: bool = true
-func _calculate_coyote_time(delta: float) -> void:
-	if _player.is_on_floor():
-		coyote_time_left = default_coyote_time
-	else:
-		coyote_time_left -= delta
-	
-	coyote_time_active = coyote_time_left > 0.0
 
 func _is_moving() -> bool:
 	return _player.movement_directions.x != 0 or _player.movement_directions.z != 0
@@ -81,6 +71,16 @@ func _minimum_stamina(minimum: float) -> bool:
 
 func _is_on_ground() -> bool:
 	return _player.is_on_floor() and _player.velocity.y	<= 0
+
+var coyote_time_left: float = 0.0
+var coyote_time_active: bool = true
+func _calculate_coyote_time(delta: float) -> void:
+	if _is_on_ground():
+		coyote_time_left = default_coyote_time
+	else:
+		coyote_time_left -= delta
+	
+	coyote_time_active = coyote_time_left > 0.0
 
 func _can_jump_off_ground() -> bool:
 	return _is_on_ground() and coyote_time_active
