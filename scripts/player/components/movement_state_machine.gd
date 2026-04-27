@@ -18,6 +18,7 @@ var _current_state: int = MovementStates.IDLE
 var _player: Player
 var _uncrouch_ray_cast: RayCast3D
 var _unslide_ray_cast: RayCast3D
+var _can_double_jump: bool = true
 
 # @onready vars
 @onready var _uncrouch_ray_cast_colliding: bool
@@ -31,6 +32,7 @@ func _ready() -> void:
 func process(delta: float) -> void:
 	_calculate_coyote_time(delta)
 	_player_stand_up_check()
+	_reset_double_jump()
 	_current_state = _update_state()
 
 # Public methods (component APIs)
@@ -77,11 +79,15 @@ func _has_stamina_for(cost: float) -> bool:
 func _minimum_stamina(minimum: float) -> bool:
 	return _player.stamina > minimum
 
-func _can_jump_off_ground() -> bool:
-	return _player.is_on_floor() and coyote_time_active
-	
 func _is_on_ground() -> bool:
 	return _player.is_on_floor() and _player.velocity.y	<= 0
+
+func _can_jump_off_ground() -> bool:
+	return _is_on_ground() and coyote_time_active
+
+func _reset_double_jump() -> void:
+	if _is_on_ground():
+		_can_double_jump = true
 
 func _can_enter_idle() -> bool:
 	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast_colliding) or _player.velocity_timeout
@@ -115,7 +121,7 @@ func _can_enter_double_jump() -> bool:
 	var in_air: bool = !_player.is_on_floor() and !coyote_time_active
 	var already_in_air_state: bool = (_current_state == MovementStates.JUMP or _current_state == MovementStates.FALLING)
 	
-	return input_jump and in_air and already_in_air_state and _has_stamina_for(_player.double_jump_stamina_drain)
+	return input_jump and in_air and already_in_air_state and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
 	
 func _can_enter_wall_jump() -> bool:
 	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
@@ -129,7 +135,9 @@ func _is_above_stamina_safe_zone() -> bool:
 func _compute_next_state() -> int:
 	if _can_enter_jump(): return MovementStates.JUMP
 	if _can_enter_wall_jump(): return MovementStates.WALL_JUMP
-	if _can_enter_double_jump(): return MovementStates.DOUBLE_JUMP
+	if _can_enter_double_jump(): 
+		_can_double_jump = false
+		return MovementStates.DOUBLE_JUMP
 	
 	if _can_enter_slide():
 		if _current_state == MovementStates.SLIDE or _is_above_stamina_safe_zone():

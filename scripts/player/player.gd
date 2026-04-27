@@ -231,16 +231,11 @@ func _jump() -> void:
 @export_category("Double Jumping")
 @export var double_jump_multiplier: float = 0.7
 @export var can_double_jump_after_wall_jump: bool = false
-var can_double_jump: bool = true
 func _double_jump() -> void:
-	if is_on_floor():
-		can_double_jump = true
-	
 	if movement_directions.y < 0:
 		movement_directions.y = 0.0
 		
 	movement_directions.y += jump_velocity * double_jump_multiplier
-	can_double_jump = false
 		
 	one_time_stamina_drain(double_jump_stamina_drain)
 		
@@ -256,7 +251,7 @@ var wall_jump_direction: Vector3
 func reset_wall_jumping_directions() -> void:
 	wall_jump_direction = Vector3(1, 0, 1)
 
-func wall_jumping() -> void:
+func _wall_jump() -> void:
 	if movement_state_machine._can_enter_wall_jump():
 		reset_wall_jumping_directions()
 		
@@ -312,7 +307,7 @@ func _on_state_changed(new_state):
 		states.DOUBLE_JUMP:
 			_double_jump()
 		states.WALL_JUMP:
-			print("Entered WALL JUMP state")
+			_wall_jump()
 		states.FALLING:
 			print("Entered FALLING state")
 
@@ -340,10 +335,6 @@ func _process(delta: float) -> void:
 	calulcate_movement_inertia(delta)
 	
 	gravity(delta)
-	
-	#double_jump(delta)
-	
-	#wall_jumping()
 	
 	movement_velocity()
 	
