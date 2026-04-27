@@ -1,6 +1,9 @@
 class_name CameraController
 extends Node
 
+signal freelook_started
+signal freelook_stopped
+
 @export_category("Mouse Movement")
 @export var mouse_sensitivity: float = 0.075:
 	set(value):
@@ -43,6 +46,11 @@ func set_references(head_node: Node3D, camera_node: Camera3D) -> void:
 	_camera = camera_node
 
 func handle_input(event: InputEvent) -> void:
+	if event.is_action_pressed("free_look"):
+		emit_signal("freelook_started")
+	elif event.is_action_released("free_look"):
+		emit_signal("freelook_stopped")
+
 	_body_rotation(event)
 	_calculate_base_head_rotation(event)
 	_calculate_free_look_rotation(event)
