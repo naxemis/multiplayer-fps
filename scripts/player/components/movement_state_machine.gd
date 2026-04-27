@@ -56,19 +56,14 @@ func _player_stand_up_check() -> void:
 	_unslide_ray_cast_colliding = _unslide_ray_cast.is_colliding()
 	
 var coyote_time_left: float = 0.0
-var is_coyote_time_active: bool = true
+var coyote_time_active: bool = true
 func _calculate_coyote_time(delta: float) -> void:
-	coyote_time_left = clampf(coyote_time_left, 0.0, default_coyote_time)
-
 	if _player.is_on_floor():
 		coyote_time_left = default_coyote_time
 	else:
 		coyote_time_left -= delta
 	
-	if coyote_time_left >= 0:
-		is_coyote_time_active = true
-	else:
-		is_coyote_time_active = false
+	coyote_time_active = coyote_time_left > 0.0
 
 func _is_moving() -> bool:
 	return _player.movement_directions.x != 0 or _player.movement_directions.z != 0
@@ -83,29 +78,45 @@ func _minimum_stamina(minimum: float) -> bool:
 	return _player.stamina > minimum
 
 func _can_jump_off_ground() -> bool:
-	return _player.is_on_floor() or is_coyote_time_active
+	return _player.is_on_floor() and coyote_time_active
+	
+func _is_on_ground() -> bool:
+	return _player.is_on_floor() and _player.velocity.y	<= 0
 
 func _can_enter_idle() -> bool:
-	return (!_is_moving() and _player.is_on_floor() and !_uncrouch_ray_cast_colliding) or _player.velocity_timeout
+	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast_colliding) or _player.velocity_timeout
 
 func _can_enter_walk() -> bool:
-	return _is_moving() and _player.is_on_floor() and (_current_state != MovementStates.JUMP or _current_state != MovementStates.DOUBLE_JUMP) and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
+	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
 
 func _can_enter_run() -> bool:
-	return Input.is_action_pressed("run") and _is_moving_forward() and _player.is_on_floor() and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
+	var input_run: bool = Input.is_action_pressed("run")
+
+	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
 
 func _can_enter_crouch() -> bool:
-	return ((Input.is_action_pressed("crouch") and _player.is_on_floor()) and !_unslide_ray_cast_colliding) or _uncrouch_ray_cast_colliding
+	var input_crouch: bool = Input.is_action_pressed("crouch")
+
+	return ((input_crouch and _is_on_ground()) and !_unslide_ray_cast_colliding) or _uncrouch_ray_cast_colliding
 
 func _can_enter_slide() -> bool:
-	return Input.is_action_pressed("slide") and _player.is_on_floor() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0)
+	var input_slide: bool = Input.is_action_pressed("slide")
+
+	return input_slide and _is_on_ground() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0)
 
 func _can_enter_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and (_player.is_on_floor() or is_coyote_time_active) and _current_state != MovementStates.CROUCH and _has_stamina_for(_player.jump_stamina_drain)
+	var input_jump: bool = Input.is_action_just_pressed("jump")
+	var no_blocked_state: bool = _current_state != MovementStates.CROUCH
+
+	return input_jump and _can_jump_off_ground() and no_blocked_state and _has_stamina_for(_player.jump_stamina_drain)
 
 func _can_enter_double_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and !_player.is_on_floor() and _player.can_double_jump and _has_stamina_for(_player.double_jump_stamina_drain) and !is_coyote_time_active
-
+	var input_jump: bool = Input.is_action_just_pressed("jump")
+	var in_air: bool = !_player.is_on_floor() and !coyote_time_active
+	var already_in_air_state: bool = (_current_state == MovementStates.JUMP or _current_state == MovementStates.FALLING)
+	
+	return input_jump and in_air and already_in_air_state and _has_stamina_for(_player.double_jump_stamina_drain)
+	
 func _can_enter_wall_jump() -> bool:
 	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
 

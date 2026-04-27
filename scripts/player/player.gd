@@ -138,7 +138,7 @@ func calculate_movement_speed(delta) -> void:
 @export var max_stamina: float = 100.0
 @onready var stamina: float = max_stamina
 
-var stamina_recovery = {
+var stamina_recovery := {
 	movement_state_machine.MovementStates.IDLE: idle_stamina_recovery,
 	movement_state_machine.MovementStates.CROUCH: crouch_stamina_recovery,
 	movement_state_machine.MovementStates.WALK: walk_stamina_recovery,
@@ -215,44 +215,36 @@ func calulcate_movement_inertia(delta) -> void:
 # applies gravity to player's body, when it's not on floor
 @export var gravity_force: float = 18.0
 func gravity(delta) -> void:
-	if !is_on_floor():
-		movement_directions.y -= gravity_force * delta
-	else:
-		movement_directions.y = 0.0
+	movement_directions.y -= gravity_force * delta
 
 @export_category("Jumping")
 # adds jumping mechanic to player's movement
 @export var jump_velocity: float = 7.5
-func jump() -> void:
-	if movement_state_machine._can_enter_jump():
-		movement_directions.y = 0
-		movement_directions.y += jump_velocity
+func _jump() -> void:
+	movement_directions.y = 0
+	movement_directions.y += jump_velocity
 		
-		movement_state_machine.coyote_time_left = 0
+	movement_state_machine.coyote_time_left = 0
 		
-		one_time_stamina_drain(jump_stamina_drain)
+	one_time_stamina_drain(jump_stamina_drain)
 
 @export_category("Double Jumping")
 @export var double_jump_multiplier: float = 0.7
 @export var can_double_jump_after_wall_jump: bool = false
 var can_double_jump: bool = true
-var double_jumping: bool = false
-func double_jump(delta) -> void:
-	if is_on_floor() or (movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP and can_double_jump_after_wall_jump):
+func _double_jump() -> void:
+	if is_on_floor():
 		can_double_jump = true
-		double_jumping = false
 	
-	if movement_state_machine._can_enter_double_jump():
-		if movement_directions.y < 0:
-			movement_directions.y = 0.0
+	if movement_directions.y < 0:
+		movement_directions.y = 0.0
 		
-		movement_directions.y += jump_velocity * double_jump_multiplier
-		can_double_jump = false
-		double_jumping = true
+	movement_directions.y += jump_velocity * double_jump_multiplier
+	can_double_jump = false
 		
-		one_time_stamina_drain(double_jump_stamina_drain)
+	one_time_stamina_drain(double_jump_stamina_drain)
 		
-		reset_wall_jumping_directions()
+	reset_wall_jumping_directions()
 #endregion
 
 #region Wall Jumping
@@ -316,9 +308,9 @@ func _on_state_changed(new_state):
 		states.SLIDE:
 			print("Entered SLIDE state")
 		states.JUMP:
-			print("Entered JUMP state")
+			_jump()
 		states.DOUBLE_JUMP:
-			print("Entered DOUBLE JUMP state")
+			_double_jump()
 		states.WALL_JUMP:
 			print("Entered WALL JUMP state")
 		states.FALLING:
@@ -339,27 +331,23 @@ func _ready():
 	movement_state_machine.state_changed.connect(_on_state_changed)
 
 func _process(delta: float) -> void:
+	movement_state_machine.process(delta) 
 	get_velocity_timeout(delta)
-	
 	collision_shape_animations(delta)
-	
 	calculate_movement_speed(delta)
-	
 	calculate_stamina(delta)
-	
 	get_movement_directions()
 	calulcate_movement_inertia(delta)
 	
 	gravity(delta)
-	jump()
-	double_jump(delta)
 	
-	wall_jumping()
+	#double_jump(delta)
+	
+	#wall_jumping()
 	
 	movement_velocity()
 	
 	camera_controller.process(delta, movement_speed)
-	movement_state_machine.process(delta)
 		
 	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP", "FALLING"]
 	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(movement_state_machine.coyote_time_left, 0.01))
