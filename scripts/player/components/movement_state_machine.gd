@@ -21,8 +21,6 @@ var _unslide_ray_cast: RayCast3D
 var _can_double_jump: bool = true
 
 # @onready vars
-@onready var _uncrouch_ray_cast_colliding: bool
-@onready var _unslide_ray_cast_colliding: bool
 
 # _init / _ready
 func _ready() -> void:
@@ -31,7 +29,6 @@ func _ready() -> void:
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
 func process(delta: float) -> void:
 	_calculate_coyote_time(delta)
-	_player_stand_up_check()
 	_reset_double_jump()
 	_current_state = _update_state()
 
@@ -52,10 +49,6 @@ func _create_ray_casts() -> bool:
 	_uncrouch_ray_cast = _make_ray_cast(Vector3(0, 1.2, 0), Vector3(0, 0.6, 0))
 	_unslide_ray_cast = _make_ray_cast(Vector3(0, 0.6, 0), Vector3(0, 0.6, 0))
 	return true
-
-func _player_stand_up_check() -> void:
-	_uncrouch_ray_cast_colliding = _uncrouch_ray_cast.is_colliding()
-	_unslide_ray_cast_colliding = _unslide_ray_cast.is_colliding()
 
 func _is_moving() -> bool:
 	return _player.movement_directions.x != 0 or _player.movement_directions.z != 0
@@ -90,25 +83,25 @@ func _reset_double_jump() -> void:
 		_can_double_jump = true
 
 func _can_enter_idle() -> bool:
-	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast_colliding) or _player.velocity_timeout
+	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding()) or _player.velocity_timeout
 
 func _can_enter_walk() -> bool:
-	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
+	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_player.velocity_timeout
 
 func _can_enter_run() -> bool:
 	var input_run: bool = Input.is_action_pressed("run")
 
-	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast_colliding and !_player.velocity_timeout
+	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_player.velocity_timeout
 
 func _can_enter_crouch() -> bool:
 	var input_crouch: bool = Input.is_action_pressed("crouch")
 
-	return ((input_crouch and _is_on_ground()) and !_unslide_ray_cast_colliding) or _uncrouch_ray_cast_colliding
+	return ((input_crouch and _is_on_ground()) and !_unslide_ray_cast.is_colliding()) or _uncrouch_ray_cast.is_colliding()
 
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
 
-	return input_slide and _is_on_ground() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0)
+	return input_slide and _is_on_ground() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0) and _unslide_ray_cast.is_colliding()
 
 func _can_enter_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
