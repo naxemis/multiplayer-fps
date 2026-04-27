@@ -1,6 +1,8 @@
 class_name MovementStateMachine
 extends Node
 
+# TODO: Fix movement states overlapping (e.g. player can jump and movement state will switch to jump for a second, and then switch back to previous state)
+
 # Signals
 signal state_changed(new_state: int)
 
