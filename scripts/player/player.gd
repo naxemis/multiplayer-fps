@@ -87,51 +87,56 @@ var slide_speed: float = 0.0
 @export_category("Speed Inertia")
 @export var speed_inertia: float = 7.5
 
-func calculate_movement_speed(delta) -> void:
-	# walk speed
-	if movement_state_machine._current_state != movement_state_machine.MovementStates.CROUCH:
-		current_walk_speed = walk_speed
-	else:
-		current_walk_speed = 0.0
+func _walk() -> void:
+	var delta: float = get_physics_process_delta_time()
+
+	current_walk_speed = walk_speed
 	
-	# run speed
+	run_speed -= run_walk_decrease * delta
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
-	if movement_state_machine._current_state == movement_state_machine.MovementStates.RUN:
-		run_speed += run_speed_increase * delta
-	elif movement_state_machine._current_state == movement_state_machine.MovementStates.JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.DOUBLE_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.SLIDE:
-		pass
-	elif movement_state_machine._current_state == movement_state_machine.MovementStates.WALK:
-		run_speed -= run_walk_decrease * delta
-	else:
-		run_speed -= run_crouch_decrease * delta
-	
-	# slide speed
+	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
+	slide_speed -= floor_speed * slide_walk_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 	
-	var calculating_slope_interference: Vector3 = get_floor_normal() * -transform.basis.z
-	var slope_interference: float = (calculating_slope_interference.z + calculating_slope_interference.x) * slope_interference_factor
+func _run() -> void:
+	var delta: float = get_physics_process_delta_time()
+
+	current_walk_speed = walk_speed
+	
+	run_speed += run_speed_increase * delta
+	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var actual_slide_buff_multiplier: float = slide_buff_multiplier + slope_interference
-	var slide_buff: float = floor_speed * actual_slide_buff_multiplier
+	slide_speed -= floor_speed * slide_run_decrease * delta
+	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
+
+func _slide() -> void:
+	var delta: float = get_physics_process_delta_time()
+
+	current_walk_speed = walk_speed
 	
-	if movement_state_machine._current_state == movement_state_machine.MovementStates.SLIDE:
-		slide_speed += slide_buff * delta
-	elif movement_state_machine._current_state == movement_state_machine.MovementStates.JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.DOUBLE_JUMP or movement_state_machine._current_state == movement_state_machine.MovementStates.WALL_JUMP:
-		pass
-	elif movement_state_machine._current_state == movement_state_machine.MovementStates.RUN:
-		slide_speed -= floor_speed * slide_run_decrease * delta
-	elif movement_state_machine._current_state == movement_state_machine.MovementStates.WALK:
-		slide_speed -= floor_speed * slide_walk_decrease * delta
-	else:
-		slide_speed -= slide_crouch_decrease * delta
+	var floor_normal: Vector3 = get_floor_normal()
+	var forward_vector: Vector3 = -transform.basis.z
+	var calculating_slope: Vector3 = floor_normal * forward_vector
+	var slope_interference: float = (calculating_slope.z + calculating_slope.x) * slope_interference_factor
 	
-	# speed
-	var speed_before_inertia: float = floor_speed + slide_speed
+	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
+	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
 	
-	movement_speed = lerpf(movement_speed, speed_before_inertia, speed_inertia * delta) # movement speed after adding inertia
-#endregion
+	slide_speed += actual_slide_buff * delta
+	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
+
+func _crouch_or_other() -> void:
+	var delta: float = get_physics_process_delta_time()
+
+	current_walk_speed = 0.0
+	
+	run_speed -= run_crouch_decrease * delta
+	run_speed = clampf(run_speed, 0.0, max_run_speed)
+	
+	slide_speed -= slide_crouch_decrease * delta
+	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
 #region Stamina
 @export_category("Movement Stamina")
@@ -214,8 +219,11 @@ func calulcate_movement_inertia(delta) -> void:
 @export_category("Gravity")
 # applies gravity to player's body, when it's not on floor
 @export var gravity_force: float = 18.0
-func gravity(delta) -> void:
-	movement_directions.y -= gravity_force * delta
+func _gravity(delta) -> void:
+	if !is_on_floor():
+		movement_directions.y -= gravity_force * delta
+	else:
+		pass
 
 @export_category("Jumping")
 # adds jumping mechanic to player's movement
@@ -288,28 +296,23 @@ func movement_velocity() -> void:
 	
 	move_and_slide()
 
+var current_movement_logic: Callable = _crouch_or_other
+
 func _on_state_changed(new_state):
 	var states := movement_state_machine.MovementStates
 	
 	match new_state:
-		states.IDLE:
-			print("Entered IDLE state")
+		states.IDLE, states.CROUCH:
+			current_movement_logic = _crouch_or_other
 		states.WALK:
-			print("Entered WALK state")
+			current_movement_logic = _walk
 		states.RUN:
-			print("Entered RUN state")
-		states.CROUCH:
-			print("Entered CROUCH state")
+			current_movement_logic = _run
 		states.SLIDE:
-			print("Entered SLIDE state")
-		states.JUMP:
-			_jump()
-		states.DOUBLE_JUMP:
-			_double_jump()
-		states.WALL_JUMP:
-			_wall_jump()
-		states.FALLING:
-			print("Entered FALLING state")
+			current_movement_logic = _slide
+		states.JUMP: _jump()
+		states.DOUBLE_JUMP: _double_jump()
+		states.WALL_JUMP: _wall_jump()
 
 @onready var camera_controller: CameraController = $CameraController
 @onready var movement_state_machine: MovementStateMachine = $MovementStateMachine
@@ -320,7 +323,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
-	camera_controller.set_references(self, %Head, %Camera)
+	camera_controller.set_references(self, $Head, %Camera)
 	movement_state_machine.set_references(self)
 	
 	movement_state_machine.state_changed.connect(_on_state_changed)
@@ -329,16 +332,23 @@ func _process(delta: float) -> void:
 	movement_state_machine.process(delta) 
 	get_velocity_timeout(delta)
 	collision_shape_animations(delta)
-	calculate_movement_speed(delta)
+	#calculate_movement_speed(delta)
 	calculate_stamina(delta)
 	get_movement_directions()
 	calulcate_movement_inertia(delta)
-	
-	gravity(delta)
-	
-	movement_velocity()
 	
 	camera_controller.process(delta, movement_speed)
 		
 	var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLEJUMP", "WALLJUMP", "FALLING"]
 	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[movement_state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(movement_state_machine.coyote_time_left, 0.01))
+
+func _physics_process(delta: float) -> void:
+	current_movement_logic.call()
+		
+	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
+	var speed_before_inertia: float = floor_speed + slide_speed
+		
+	movement_speed = lerpf(movement_speed, speed_before_inertia, speed_inertia * delta)
+
+	_gravity(delta)
+	movement_velocity()

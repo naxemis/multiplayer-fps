@@ -98,7 +98,7 @@ func _calculate_head_rotation(base, free_look) -> void:
 	_head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:
-	var base_camera_fov: float = default_camera_fov - ((_player.walk_speed + _player.crouch_speed) * fov_speed_buff_factor)
+	var base_camera_fov: float = default_camera_fov - (_player.walk_speed + _player.crouch_speed)
 	var fov_speed_buff: float = movement_speed * fov_speed_buff_factor
 	
 	_camera_fov = base_camera_fov + fov_speed_buff
