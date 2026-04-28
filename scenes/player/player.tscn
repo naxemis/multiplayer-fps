@@ -411,6 +411,6 @@ texture_progress = SubResource("GradientTexture2D_vrsjq")
 script = ExtResource("3_gmlin")
 metadata/_custom_type_script = "uid://bnfl516agpv3d"
 
-[node name="MovementStateMachine" type="Node" parent="." unique_id=2109500808]
+[node name="MovementStateMachine" type="Node" parent="." unique_id=1372833849]
 script = ExtResource("5_p47bc")
 metadata/_custom_type_script = "uid://c1kgindmce8qp"

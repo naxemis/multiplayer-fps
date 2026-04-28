@@ -7,7 +7,7 @@ extends Node
 signal state_changed(new_state: int)
 
 # Enums and constants
-enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP, FALLING}
+enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP}
 
 # @export vars
 @export_category("Coyote Time")
@@ -103,7 +103,7 @@ func _can_enter_crouch() -> bool:
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
 
-	return input_slide and _is_on_ground() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0) and _unslide_ray_cast.is_colliding()
+	return input_slide and _is_on_ground() and _is_moving_forward() and !_player.velocity_timeout and _minimum_stamina(0.0) and !_unslide_ray_cast.is_colliding()
 
 func _can_enter_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
@@ -113,10 +113,9 @@ func _can_enter_jump() -> bool:
 
 func _can_enter_double_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
-	var in_air: bool = !_player.is_on_floor() and !coyote_time_active
-	var already_in_air_state: bool = (_current_state == MovementStates.JUMP or _current_state == MovementStates.FALLING)
+	var in_air: bool = !_is_on_ground() and !coyote_time_active
 	
-	return input_jump and in_air and already_in_air_state and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
+	return input_jump and in_air and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
 	
 func _can_enter_wall_jump() -> bool:
 	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
@@ -143,7 +142,6 @@ func _compute_next_state() -> int:
 	if _can_enter_crouch(): return MovementStates.CROUCH
 	if _can_enter_walk(): return MovementStates.WALK
 	if _can_enter_idle(): return MovementStates.IDLE
-	if _can_enter_falling(): return MovementStates.FALLING
 	
 	return _current_state
 
@@ -153,5 +151,7 @@ func _update_state() -> int:
 	if new_state != _current_state:
 		_current_state = new_state
 		state_changed.emit(new_state)
+		
+		print_debug("State changed to: ", new_state)
 		
 	return _current_state
