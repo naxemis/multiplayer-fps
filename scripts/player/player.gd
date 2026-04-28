@@ -344,6 +344,8 @@ func _physics_process(delta: float) -> void:
 	movement_state_machine.process(delta) 
 
 	current_movement_logic.call()
+	
+	#TODO: Fix movements speed on slopes
 		
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
 	var speed_before_inertia: float = floor_speed + slide_speed

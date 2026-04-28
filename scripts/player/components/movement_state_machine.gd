@@ -121,12 +121,14 @@ func _can_enter_double_jump() -> bool:
 	var in_air: bool = !_is_on_ground() and !coyote_time_active
 	
 	return input_jump and in_air and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
-
-func _can_enter_fall() -> bool:
-	return _is_airborne_state(_current_state) and !_player.is_on_wall_only() and _player.velocity.y < 0
 	
 func _can_enter_wall_jump() -> bool:
 	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
+
+func _can_enter_fall() -> bool:
+	var can_fall_from_current_state: bool = _current_state != MovementStates.WALL_JUMP
+
+	return _is_airborne_state(_current_state) and !_player.is_on_wall_only() and _player.velocity.y < 0 and can_fall_from_current_state
 
 func _is_above_stamina_safe_zone() -> bool:
 	return _player.stamina > _player.stamina_safe_zone
@@ -158,7 +160,7 @@ func _update_state() -> int:
 	if new_state != _current_state:
 		_current_state = new_state
 		state_changed.emit(new_state)
-		
-		print_debug("State changed to: ", new_state)
+	elif _can_enter_wall_jump(): # player can wall jump multiple times, even if they are already in wall jump state
+		state_changed.emit(new_state)
 		
 	return _current_state
