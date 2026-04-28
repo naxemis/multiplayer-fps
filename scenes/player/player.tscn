@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://efyrk30thy3j" path="res://scripts/player/player.gd" id="1_lvxji"]
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
 [ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
+[ext_resource type="Script" uid="uid://c1kgindmce8qp" path="res://scripts/player/components/movement_state_machine.gd" id="5_p47bc"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -361,6 +362,45 @@ height = 5
 collision_layer = 2
 floor_max_angle = 1.39626
 script = ExtResource("1_lvxji")
+time_before_velocity_timeout = null
+crouch_animation_speed = null
+slide_animation_speed = null
+crouch_blend_amount = null
+slide_blend_amount = null
+crouch_speed = null
+walk_speed = null
+max_run_speed = null
+run_speed_increase = null
+run_walk_decrease = null
+run_crouch_decrease = null
+max_slide_speed = null
+slide_buff_multiplier = null
+slope_uphill_brake_factor = null
+slope_downhill_boost_factor = null
+slide_run_decrease = null
+slide_walk_decrease = null
+slide_crouch_decrease = null
+speed_inertia = null
+max_stamina = null
+idle_stamina_recovery = null
+crouch_stamina_recovery = null
+walk_stamina_recovery = null
+run_stamina_recovery = null
+in_air_stamina_recovery = null
+slide_stamina_drain = null
+jump_stamina_drain = null
+double_jump_stamina_drain = null
+wall_jump_stamina_drain = null
+stamina_safe_zone = null
+on_ground_inertia = null
+in_air_inertia = null
+gravity_force = null
+jump_velocity = null
+double_jump_multiplier = null
+can_double_jump_after_wall_jump = null
+vertical_jump_multiplier = null
+min_vertical_jump = null
+max_vertical_jump = null
 
 [node name="Body" type="MeshInstance3D" parent="." unique_id=1685405249]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
@@ -395,14 +435,6 @@ offset_right = 40.0
 offset_bottom = 23.0
 theme_override_font_sizes/font_size = 12
 
-[node name="CrouchRayCast" type="RayCast3D" parent="." unique_id=2096251018]
-transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 1.2, 0)
-target_position = Vector3(0, -0.6, 0)
-
-[node name="SlideRayCast" type="RayCast3D" parent="." unique_id=656320279]
-transform = Transform3D(1, 0, 0, 0, -1, 8.74228e-08, 0, -8.74228e-08, -1, 0, 0.6, 0)
-target_position = Vector3(0, -0.6, 0)
-
 [node name="StaminaBar" type="TextureProgressBar" parent="." unique_id=1781604602]
 unique_name_in_owner = true
 offset_top = 715.0
@@ -414,6 +446,11 @@ fill_mode = 6
 texture_under = SubResource("GradientTexture2D_k1exq")
 texture_progress = SubResource("GradientTexture2D_vrsjq")
 
-[node name="CameraController" type="Node" parent="." unique_id=41998332]
+[node name="CameraController" type="Node" parent="." unique_id=1930370485]
 script = ExtResource("3_gmlin")
-mouse_sensitivity = 0.571
+metadata/_custom_type_script = "uid://bnfl516agpv3d"
+
+[node name="MovementStateMachine" type="Node" parent="." unique_id=238107439]
+script = ExtResource("5_p47bc")
+default_coyote_time = null
+metadata/_custom_type_script = "uid://c1kgindmce8qp"

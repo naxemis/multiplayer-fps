@@ -36,14 +36,7 @@ var _base_head_rotation: Vector2
 var _free_look_rotation: Vector2
 var _head_rotation: Vector2
 var _camera_fov: float
-var _head: Node3D
-var _camera: Camera3D
-
-@onready var _body: Player = get_parent()
-
-func set_references(head_node: Node3D, camera_node: Camera3D) -> void:
-	_head = head_node
-	_camera = camera_node
+var _context: PlayerContext
 
 func handle_input(event: InputEvent) -> void:
 	if event.is_action_pressed("free_look"):
@@ -55,22 +48,24 @@ func handle_input(event: InputEvent) -> void:
 	_calculate_base_head_rotation(event)
 	_calculate_free_look_rotation(event)
 
-func process(delta: float, movement_speed: float) -> void:
+func process(delta: float, context: PlayerContext) -> void:
+	_context = context
+
 	_free_look_return(delta)
 	_calculate_head_rotation(_base_head_rotation, _free_look_rotation)
-	_calculate_camera_fov(delta, movement_speed)
+	_calculate_camera_fov(delta, _context.movement_speed)
 
 func get_head_rotation() -> Vector2:
 	return _head_rotation
 
 func _body_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		_body.rotation.y -= event.relative.x * _mouse_sensitivity_rad
+		_context.body_rotation.y -= event.relative.x * _mouse_sensitivity_rad
 
 		const ROTATION_MIN: float = 0.0
 		const ROTATION_MAX: float = TAU
 		
-		_body.rotation.y = wrapf(_body.rotation.y, ROTATION_MIN, ROTATION_MAX)
+		_context.body_rotation.y = wrapf(_context.body_rotation.y, ROTATION_MIN, ROTATION_MAX)
 
 func _calculate_base_head_rotation(event) -> void:
 	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
@@ -95,11 +90,12 @@ func _calculate_head_rotation(base, free_look) -> void:
 	
 	_head_rotation.x = clampf(_head_rotation.x, -_head_rotation_limit_rad, _head_rotation_limit_rad)
 	
-	_head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
+	_context.head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:
+	var base_camera_fov: float = default_camera_fov - (_context.walk_speed + _context.crouch_speed)
 	var fov_speed_buff: float = movement_speed * fov_speed_buff_factor
 	
-	_camera_fov = default_camera_fov + fov_speed_buff
+	_camera_fov = base_camera_fov + fov_speed_buff
 	
-	_camera.fov = lerpf(_camera.fov, _camera_fov, fov_interpolation_speed * delta)
+	_context.camera.fov = lerpf(_context.camera.fov, _camera_fov, fov_interpolation_speed * delta)
