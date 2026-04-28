@@ -78,7 +78,7 @@ var slide_speed: float = 0.0
 @export var max_slide_speed: float = 2.5
 
 @export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
-@export var slope_interference_factor: float = 0.85 # how much slope interference will actually work on calculating slide buff
+@export var slope_interference_factor: float = 0.5 # how much slope interference will actually work on calculating slide buff
 
 @export var slide_run_decrease: float = 0.05 # decrease when switching to running
 @export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
@@ -345,12 +345,10 @@ func _physics_process(delta: float) -> void:
 
 	current_movement_logic.call()
 	
-	#TODO: Fix movements speed on slopes
-		
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
 	var speed_before_inertia: float = floor_speed + slide_speed
 		
-	movement_speed = lerpf(movement_speed, speed_before_inertia, speed_inertia * delta)
+	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
 	_gravity(delta)
 	movement_velocity()
