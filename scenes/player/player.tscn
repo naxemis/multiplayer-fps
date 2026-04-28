@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://efyrk30thy3j" path="res://scripts/player/player.gd" id="1_lvxji"]
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
 [ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
-[ext_resource type="Script" uid="uid://c1kgindmce8qp" path="res://scripts/player/components/movement_state_machine.gd" id="5_p47bc"]
+[ext_resource type="Script" uid="uid://2rfx3ju40d5h" path="res://scripts/player/components/movement_state_machine.gd" id="5_p47bc"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -411,7 +411,6 @@ texture_progress = SubResource("GradientTexture2D_vrsjq")
 script = ExtResource("3_gmlin")
 metadata/_custom_type_script = "uid://bnfl516agpv3d"
 
-[node name="MovementStateMachine" type="Node" parent="." unique_id=238107439]
+[node name="MovementStateMachine" type="Node" parent="." unique_id=1171073279]
 script = ExtResource("5_p47bc")
-default_coyote_time = null
-metadata/_custom_type_script = "uid://c1kgindmce8qp"
+metadata/_custom_type_script = "uid://2rfx3ju40d5h"
