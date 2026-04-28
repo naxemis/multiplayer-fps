@@ -128,7 +128,7 @@ func _slide() -> void:
 	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
 	
 	slide_speed += actual_slide_buff * delta
-	slide_speed = clampf(slide_speed, -max_slide_speed, max_slide_speed)
+	slide_speed = clampf(slide_speed, -floor_speed, max_slide_speed)
 
 func _crouch_or_other() -> void:
 	var delta: float = get_physics_process_delta_time()
@@ -362,7 +362,21 @@ func _process(delta: float) -> void:
 	
 	_build_process_context()
 		
-	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[_context.state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(_context.state_machine._coyote_time_left, 0.01))
+	%Debug.text = str(
+		"FPS: ", Engine.get_frames_per_second(), "\n",
+		"Velocity: ", round(velocity), "\n",
+		"Movement Speed: ", snappedf(movement_speed, 0.1), "\n",
+		"Walk Speed: ", snappedf(walk_speed, 0.01), "\n",
+		"Run Speed: ", snappedf(run_speed, 0.01), "\n",
+		"Slide Speed: ", snappedf(slide_speed, 0.01), "\n",
+		"Movement State: ", movement_states_array[_context.state_machine._current_state], "\n",
+		"Velocity Timeout Time Left: ", velocity_timeout_time_left, "\n",
+		"Stamina: ", snappedf(stamina, 0.1), "\n",
+		"On Floor: ", is_on_floor(), "\n",
+		"On Wall: ", is_on_wall(), "\n",
+		"Camera FOV: ", snappedf(%Camera.fov, 0.1), "\n",
+		"Coyote Time Left: ", snappedf(_context.state_machine._coyote_time_left, 0.01)
+	)
 
 func _physics_process(delta: float) -> void:
 	get_velocity_timeout(delta)
