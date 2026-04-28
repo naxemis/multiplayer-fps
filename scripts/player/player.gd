@@ -78,7 +78,8 @@ var slide_speed: float = 0.0
 @export var max_slide_speed: float = 2.5
 
 @export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
-@export var slope_interference_factor: float = 0.5 # how much slope interference will actually work on calculating slide buff
+@export var slope_uphill_brake_factor: float = 0.85 # how much uphill brakes slide
+@export var slope_downhill_boost_factor: float = 0.5 # how much downhill boosts slide
 
 @export var slide_run_decrease: float = 0.05 # decrease when switching to running
 @export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
@@ -119,13 +120,15 @@ func _slide() -> void:
 	var floor_normal: Vector3 = get_floor_normal()
 	var forward_vector: Vector3 = -transform.basis.z
 	var calculating_slope: Vector3 = floor_normal * forward_vector
-	var slope_interference: float = (calculating_slope.z + calculating_slope.x) * slope_interference_factor
+	var slope_value: float = calculating_slope.z + calculating_slope.x
+	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
+	var slope_interference: float = slope_value * slope_factor
 	
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
 	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
 	
 	slide_speed += actual_slide_buff * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
+	slide_speed = clampf(slide_speed, -max_slide_speed, max_slide_speed)
 
 func _crouch_or_other() -> void:
 	var delta: float = get_physics_process_delta_time()
@@ -316,12 +319,12 @@ func _on_state_changed(new_state):
 
 var _context: PlayerContext = PlayerContext.new()
 
-func _init_context(camera_controller: CameraController, state_machine: MovementStateMachine) -> void:
+func _init_context() -> void:
 	_context.head = %Head
 	_context.camera = %Camera
 	
-	_context.camera_controller = camera_controller
-	_context.state_machine = state_machine
+	_context.camera_controller = $CameraController
+	_context.state_machine = $MovementStateMachine
 	
 	_context.walk_speed = walk_speed
 	_context.crouch_speed = crouch_speed
@@ -349,7 +352,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
-	_init_context($CameraController, $MovementStateMachine)
+	_init_context()
 	
 	_context.state_machine.state_changed.connect(_on_state_changed)
 
@@ -360,8 +363,6 @@ func _process(delta: float) -> void:
 	_build_process_context()
 		
 	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[_context.state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(_context.state_machine._coyote_time_left, 0.01))
-
-# TODO: Fix speed on slopes again
 
 func _physics_process(delta: float) -> void:
 	get_velocity_timeout(delta)
@@ -377,8 +378,8 @@ func _physics_process(delta: float) -> void:
 	current_movement_logic.call()
 	
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var speed_before_inertia: float = floor_speed + slide_speed
-		
+	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
+
 	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
 	_gravity(delta)
