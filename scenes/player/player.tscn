@@ -407,10 +407,10 @@ fill_mode = 6
 texture_under = SubResource("GradientTexture2D_k1exq")
 texture_progress = SubResource("GradientTexture2D_vrsjq")
 
-[node name="CameraController" type="Node" parent="." unique_id=1056472706]
+[node name="CameraController" type="Node" parent="." unique_id=1930370485]
 script = ExtResource("3_gmlin")
 metadata/_custom_type_script = "uid://bnfl516agpv3d"
 
-[node name="MovementStateMachine" type="Node" parent="." unique_id=1372833849]
+[node name="MovementStateMachine" type="Node" parent="." unique_id=238107439]
 script = ExtResource("5_p47bc")
 metadata/_custom_type_script = "uid://c1kgindmce8qp"

@@ -7,7 +7,7 @@ extends Node
 signal state_changed(new_state: int)
 
 # Enums and constants
-enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP}
+enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP, FALL}
 
 # @export vars
 @export_category("Coyote Time")
@@ -67,6 +67,12 @@ func _minimum_stamina(minimum: float) -> bool:
 func _is_on_ground() -> bool:
 	return _player.is_on_floor() and _player.velocity.y	<= 0
 
+func _is_airborne_state(state: int) -> bool:
+	return state == MovementStates.JUMP \
+		or state == MovementStates.DOUBLE_JUMP \
+		or state == MovementStates.WALL_JUMP \
+		or state == MovementStates.FALL
+
 var coyote_time_left: float = 0.0
 var coyote_time_active: bool = true
 func _calculate_coyote_time(delta: float) -> void:
@@ -97,8 +103,9 @@ func _can_enter_run() -> bool:
 
 func _can_enter_crouch() -> bool:
 	var input_crouch: bool = Input.is_action_pressed("crouch")
+	var stuck_under_ceiling: bool = _uncrouch_ray_cast.is_colliding() or _unslide_ray_cast.is_colliding()
 
-	return ((input_crouch and _is_on_ground()) and !_unslide_ray_cast.is_colliding()) or _uncrouch_ray_cast.is_colliding()
+	return (input_crouch or stuck_under_ceiling) and _is_on_ground()
 
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
@@ -116,12 +123,12 @@ func _can_enter_double_jump() -> bool:
 	var in_air: bool = !_is_on_ground() and !coyote_time_active
 	
 	return input_jump and in_air and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
+
+func _can_enter_fall() -> bool:
+	return _is_airborne_state(_current_state) and !_player.is_on_wall_only() and _player.velocity.y < 0
 	
 func _can_enter_wall_jump() -> bool:
 	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
-
-func _can_enter_falling() -> bool:
-	return !_player.is_on_floor() and _player.velocity.y < 0
 
 func _is_above_stamina_safe_zone() -> bool:
 	return _player.stamina > _player.stamina_safe_zone
@@ -132,6 +139,8 @@ func _compute_next_state() -> int:
 	if _can_enter_double_jump(): 
 		_can_double_jump = false
 		return MovementStates.DOUBLE_JUMP
+	
+	if _can_enter_fall(): return MovementStates.FALL
 	
 	if _can_enter_slide():
 		if _current_state == MovementStates.SLIDE or _is_above_stamina_safe_zone():

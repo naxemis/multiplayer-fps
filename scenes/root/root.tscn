@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bujmptudt5joa"]
+[gd_scene format=3 uid="uid://h5axfqism3tg"]
 
-[ext_resource type="PackedScene" uid="uid://ewmbl2f6trag" path="res://scenes/game/map/testing_range/testing_range.tscn" id="1_m0yqw"]
+[ext_resource type="PackedScene" uid="uid://ewmbl2f6trag" path="res://scenes/levels/testing_range.tscn" id="1_m0yqw"]
 
-[node name="Root" type="Node"]
+[node name="Root" type="Node" unique_id=670082367]
 
-[node name="Testing Range" parent="." instance=ExtResource("1_m0yqw")]
+[node name="TestingRange" parent="." unique_id=92755252 instance=ExtResource("1_m0yqw")]
