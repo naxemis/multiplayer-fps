@@ -394,7 +394,7 @@ anim_player = NodePath("../CollisionAnimationPlayer")
 unique_name_in_owner = true
 offset_right = 40.0
 offset_bottom = 23.0
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 12
 
 [node name="StaminaBar" type="TextureProgressBar" parent="." unique_id=1781604602]
 unique_name_in_owner = true

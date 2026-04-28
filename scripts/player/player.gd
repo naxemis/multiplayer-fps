@@ -2,12 +2,18 @@ class_name Player
 extends CharacterBody3D
 
 # TODO (REFACTOR PLAN): 
-# refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
-# for example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
-# and then have the Player script use those components to manage the player's behavior. 
-# This will make the code more organized, easier to read, and maintainable in the long run.
+# TODO: Refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
+# TODO: For example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
+# TODO: Then have the Player script use those components to manage the player's behavior. 
+# TODO: This will make the code more organized, easier to read, and maintainable in the long run.
 #
 # https://github.com/naxemis/multiplayer-fps/issues/1
+
+# TODO (MOVING UP SLOPES BUG):
+# TODO: Movement on slopes is still bugged. Slopes can randomly block players - especially when they are trying to run or slide up them. 
+# TODO: This is probably because of the way the movement speed is calculated and how it interacts with the slope.
+# TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
+# TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
 #region Velocity Timeout
 @export_category("Velocity Timeout")
