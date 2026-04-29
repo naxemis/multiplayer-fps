@@ -5,6 +5,7 @@
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
 [ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
 [ext_resource type="Script" uid="uid://2rfx3ju40d5h" path="res://scripts/player/components/movement_state_machine.gd" id="5_p47bc"]
+[ext_resource type="Script" uid="uid://bh5rnhj8l3hv0" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -414,3 +415,7 @@ metadata/_custom_type_script = "uid://bnfl516agpv3d"
 [node name="MovementStateMachine" type="Node" parent="." unique_id=1171073279]
 script = ExtResource("5_p47bc")
 metadata/_custom_type_script = "uid://2rfx3ju40d5h"
+
+[node name="MovementController" type="Node" parent="." unique_id=1722138228]
+script = ExtResource("6_75vfm")
+metadata/_custom_type_script = "uid://bh5rnhj8l3hv0"

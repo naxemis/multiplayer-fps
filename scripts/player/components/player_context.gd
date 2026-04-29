@@ -13,6 +13,7 @@ var camera: Camera3D
 # Component references
 var camera_controller: CameraController
 var state_machine: MovementStateMachine
+var movement_controller: MovementController
 
 # Static variables
 var walk_speed: float
@@ -26,10 +27,10 @@ var wall_jump_stamina_drain: float
 var body_rotation: Vector3
 
 # Physics process variables
-var on_floor: bool
-var on_wall_only: bool
+var is_on_floor: bool
+var is_on_wall: bool
+var is_on_wall_only: bool
 var velocity: Vector3
 var movement_directions: Vector3
 var movement_speed: float
-var velocity_timeout: bool
 var stamina: float

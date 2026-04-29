@@ -66,7 +66,7 @@ func _minimum_stamina(minimum: float) -> bool:
 	return _context.stamina > minimum
 
 func _is_on_ground() -> bool:
-	return _context.on_floor and _context.velocity.y <= 0
+	return _context.is_on_floor and _context.velocity.y <= 0
 
 func _is_airborne_state(state: int) -> bool:
 	return state == MovementStates.JUMP \
@@ -90,15 +90,15 @@ func _reset_double_jump() -> void:
 		_can_double_jump = true
 
 func _can_enter_idle() -> bool:
-	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding()) or _context.velocity_timeout
+	return (!_is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding()) or _context.movement_controller.velocity_timeout
 
 func _can_enter_walk() -> bool:
-	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_context.velocity_timeout
+	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_context.movement_controller.velocity_timeout
 
 func _can_enter_run() -> bool:
 	var input_run: bool = Input.is_action_pressed("run")
 
-	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_context.velocity_timeout
+	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_context.movement_controller.velocity_timeout
 
 func _can_enter_crouch() -> bool:
 	var input_crouch: bool = Input.is_action_pressed("crouch")
@@ -109,7 +109,7 @@ func _can_enter_crouch() -> bool:
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
 
-	return input_slide and _is_on_ground() and _is_moving_forward() and !_context.velocity_timeout and _minimum_stamina(0.0) and !_unslide_ray_cast.is_colliding()
+	return input_slide and _is_on_ground() and _is_moving_forward() and !_context.movement_controller.velocity_timeout and _minimum_stamina(0.0) and !_unslide_ray_cast.is_colliding()
 
 func _can_enter_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
@@ -124,12 +124,12 @@ func _can_enter_double_jump() -> bool:
 	return input_jump and in_air and _has_stamina_for(_context.double_jump_stamina_drain) and _can_double_jump
 	
 func _can_enter_wall_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and _context.on_wall_only and _is_moving() and _has_stamina_for(_context.wall_jump_stamina_drain)
+	return Input.is_action_just_pressed("jump") and _context.is_on_wall_only and _is_moving() and _has_stamina_for(_context.wall_jump_stamina_drain)
 
 func _can_enter_fall() -> bool:
 	var can_fall_from_current_state: bool = _current_state != MovementStates.WALL_JUMP
 
-	return _is_airborne_state(_current_state) and !_context.on_wall_only and _context.velocity.y < 0 and can_fall_from_current_state
+	return _is_airborne_state(_current_state) and !_context.is_on_wall_only and _context.velocity.y < 0 and can_fall_from_current_state
 
 func _is_above_stamina_safe_zone() -> bool:
 	return _context.stamina > _context.stamina_safe_zone

@@ -16,25 +16,7 @@ extends CharacterBody3D
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
 #region Velocity Timeout
-@export_category("Velocity Timeout")
-@export var time_before_velocity_timeout: float = 0.75 # how long player have to walk into wall before timeout
-var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
-var velocity_timeout: bool = false # true - player is walking into wall for too long time
-func is_blocked_on_wall() -> bool:
-	return is_on_floor() and is_on_wall() and velocity.z == 0 and velocity.x == 0
 
-func get_velocity_timeout(delta) -> void:
-	velocity_timeout_time_left = clampf(velocity_timeout_time_left, 0.0, time_before_velocity_timeout)
-	
-	if is_blocked_on_wall():
-		velocity_timeout_time_left -= delta
-	else:
-		velocity_timeout_time_left = time_before_velocity_timeout
-	
-	if velocity_timeout_time_left <= 0:
-		velocity_timeout = true
-	else:
-		velocity_timeout = false
 #endregion
 
 #region Collision Shape Animations
@@ -331,6 +313,7 @@ func _init_context() -> void:
 	
 	_context.camera_controller = $CameraController
 	_context.state_machine = $MovementStateMachine
+	_context.movement_controller = $MovementController
 	
 	_context.walk_speed = walk_speed
 	_context.crouch_speed = crouch_speed
@@ -344,10 +327,10 @@ func _build_process_context() -> void:
 	self.rotation = _context.body_rotation
 	
 func _build_physics_context() -> void:
-	_context.on_floor = is_on_floor()
-	_context.on_wall_only = is_on_wall_only()
+	_context.is_on_floor = is_on_floor()
+	_context.is_on_wall = is_on_wall()
+	_context.is_on_wall_only = is_on_wall_only()
 	_context.velocity = velocity
-	_context.velocity_timeout = velocity_timeout
 	_context.movement_directions = movement_directions
 	_context.movement_speed = movement_speed
 	_context.stamina = stamina
@@ -376,7 +359,7 @@ func _process(delta: float) -> void:
 		"Run Speed: ", snappedf(run_speed, 0.01), "\n",
 		"Slide Speed: ", snappedf(slide_speed, 0.01), "\n",
 		"Movement State: ", movement_states_array[_context.state_machine._current_state], "\n",
-		"Velocity Timeout Time Left: ", velocity_timeout_time_left, "\n",
+		"Velocity Timeout Time Left: ", _context.movement_controller._velocity_timeout_time_left, "\n",
 		"Stamina: ", snappedf(stamina, 0.1), "\n",
 		"On Floor: ", is_on_floor(), "\n",
 		"On Wall: ", is_on_wall(), "\n",
@@ -385,7 +368,6 @@ func _process(delta: float) -> void:
 	)
 
 func _physics_process(delta: float) -> void:
-	get_velocity_timeout(delta)
 	collision_shape_animations(delta)
 	calculate_stamina(delta)
 	get_movement_directions()
@@ -396,6 +378,8 @@ func _physics_process(delta: float) -> void:
 	_context.state_machine.physics_process(delta, _context) 
 
 	current_movement_logic.call()
+	
+	_context.movement_controller.physics_process(delta, _context)
 	
 	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
 	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
