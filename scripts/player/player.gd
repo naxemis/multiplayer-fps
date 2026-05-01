@@ -282,7 +282,7 @@ func _process(delta: float) -> void:
 		"Run Speed: ", snappedf(_context.movement_controller.run_speed, 0.01), "\n",
 		"Slide Speed: ", snappedf(_context.movement_controller.slide_speed, 0.01), "\n",
 		"Movement State: ", movement_states_array[_context.state_machine._current_state], "\n",
-		"Velocity Timeout Time Left: ", _context.movement_controller._velocity_timeout_time_left, "\n",
+		"Velocity Timeout Time Left: ", _context.movement_controller._velocity_timeout_left, "\n",
 		"Stamina: ", snappedf(stamina, 0.1), "\n",
 		"On Floor: ", is_on_floor(), "\n",
 		"On Wall: ", is_on_wall(), "\n",

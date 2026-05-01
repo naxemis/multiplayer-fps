@@ -13,7 +13,7 @@ extends Node
 
 # @export vars
 @export_category("Velocity Timeout")
-@export var time_before_velocity_timeout: float = 0.5 # how long player have to walk into wall before timeout
+@export var max_timeout_duration: float = 0.5 # how long player have to walk into wall before timeout
 
 @export_category("Crouching and Walking")
 @export var crouch_speed: float = 2.0
@@ -56,21 +56,21 @@ func physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
 
 # Public methods (component APIs)
-var _velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
+var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
 	return _context.is_on_floor and _context.is_on_wall and _context.velocity.z == 0 and _context.velocity.x == 0
 
 func _get_velocity_timeout(delta) -> void:
-	_velocity_timeout_time_left = clampf(_velocity_timeout_time_left, 0.0, time_before_velocity_timeout)
+	_velocity_timeout_left = clampf(_velocity_timeout_left, 0.0, max_timeout_duration)
 	
 	if _is_blocked_on_wall():
-		_velocity_timeout_time_left -= delta
+		_velocity_timeout_left -= delta
 	else:
-		_velocity_timeout_time_left = time_before_velocity_timeout
+		_velocity_timeout_left = max_timeout_duration
 	
-	if _velocity_timeout_time_left <= 0:
+	if _velocity_timeout_left <= 0:
 		velocity_timeout = true
 	else:
 		velocity_timeout = false

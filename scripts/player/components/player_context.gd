@@ -34,5 +34,3 @@ var movement_directions: Vector3
 var stamina: float
 var floor_normal: Vector3
 var forward_vector: Vector3
-
-
