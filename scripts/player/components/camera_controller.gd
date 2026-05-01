@@ -38,6 +38,9 @@ var _head_rotation: Vector2
 var _camera_fov: float
 var _context: PlayerContext
 
+func ready(context: PlayerContext) -> void:
+	_context = context
+
 func handle_input(event: InputEvent) -> void:
 	if event.is_action_pressed("free_look"):
 		emit_signal("freelook_started")
@@ -48,12 +51,10 @@ func handle_input(event: InputEvent) -> void:
 	_calculate_base_head_rotation(event)
 	_calculate_free_look_rotation(event)
 
-func process(delta: float, context: PlayerContext) -> void:
-	_context = context
-
+func process(delta: float) -> void:
 	_free_look_return(delta)
 	_calculate_head_rotation(_base_head_rotation, _free_look_rotation)
-	_calculate_camera_fov(delta, _context.movement_speed)
+	_calculate_camera_fov(delta, _context.movement_controller.movement_speed)
 
 func get_head_rotation() -> Vector2:
 	return _head_rotation
@@ -93,7 +94,7 @@ func _calculate_head_rotation(base, free_look) -> void:
 	_context.head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:
-	var base_camera_fov: float = default_camera_fov - (_context.walk_speed + _context.crouch_speed)
+	var base_camera_fov: float = default_camera_fov - (_context.movement_controller.walk_speed + _context.movement_controller.crouch_speed)
 	var fov_speed_buff: float = movement_speed * fov_speed_buff_factor
 	
 	_camera_fov = base_camera_fov + fov_speed_buff

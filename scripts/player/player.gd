@@ -45,90 +45,6 @@ func collision_shape_animations(delta) -> void:
 	$CollisionAnimationTree["parameters/State Blend/blend_amount"] = collision_blend_amount
 #endregion
 
-#region Movement Speed
-var movement_speed: float = 0.0
-
-@export_category("Crouching and Walking")
-@export var crouch_speed: float = 2.0
-@export var walk_speed: float = 2.0
-var current_walk_speed: float = 0.0
-
-@export_category("Running")
-var run_speed: float = 0.0
-@export var max_run_speed: float = 2.5
-
-@export var run_speed_increase: float = 1.0
-@export var run_walk_decrease: float = 2.5
-@export var run_crouch_decrease: float = 4.0
-
-@export_category("Sliding")
-var slide_speed: float = 0.0
-@export var max_slide_speed: float = 2.5
-
-@export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
-@export var slope_uphill_brake_factor: float = 0.85 # how much uphill brakes slide
-@export var slope_downhill_boost_factor: float = 0.5 # how much downhill boosts slide
-
-@export var slide_run_decrease: float = 0.05 # decrease when switching to running
-@export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
-@export var slide_crouch_decrease: float = 4.0 # decrease when switching to crouching
-
-@export_category("Speed Inertia")
-@export var speed_inertia: float = 7.5
-
-func _walk() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	run_speed -= run_walk_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	slide_speed -= floor_speed * slide_walk_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-	
-func _run() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	run_speed += run_speed_increase * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	slide_speed -= floor_speed * slide_run_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _slide() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	var floor_normal: Vector3 = get_floor_normal()
-	var forward_vector: Vector3 = -transform.basis.z
-	var calculating_slope: Vector3 = floor_normal * forward_vector
-	var slope_value: float = calculating_slope.z + calculating_slope.x
-	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
-	var slope_interference: float = slope_value * slope_factor
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
-	
-	slide_speed += actual_slide_buff * delta
-	slide_speed = clampf(slide_speed, -floor_speed, max_slide_speed)
-
-func _crouch_or_other() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = 0.0
-	
-	run_speed -= run_crouch_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	slide_speed -= slide_crouch_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
 #region Stamina
 @export_category("Movement Stamina")
 @export var max_stamina: float = 100.0
@@ -255,7 +171,7 @@ func _wall_jump() -> void:
 		reset_wall_jumping_directions()
 		
 		# calculates and clamps vertical jump force after wall jumping
-		var vertical_jump: float = movement_speed * vertical_jump_multiplier 
+		var vertical_jump: float = _context.movement_controller.movement_speed * vertical_jump_multiplier 
 		vertical_jump = clampf(vertical_jump, min_vertical_jump, max_vertical_jump)
 		
 		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
@@ -280,32 +196,34 @@ func movement_velocity() -> void:
 	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
 	
 	if _context.state_machine._current_state != _context.state_machine.MovementStates.WALL_JUMP:
-		velocity = (transform_x + transform_z) * movement_speed + transform_y
+		velocity = (transform_x + transform_z) * _context.movement_controller.movement_speed + transform_y
 	else:
-		velocity = wall_jump_direction * movement_speed + transform_y
+		velocity = wall_jump_direction * _context.movement_controller.movement_speed + transform_y
 		
 	
 	move_and_slide()
 
-var current_movement_logic: Callable = _crouch_or_other
+var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
 	var states := _context.state_machine.MovementStates
 	
 	match new_state:
 		states.IDLE, states.CROUCH:
-			current_movement_logic = _crouch_or_other
+			current_movement_logic = _context.movement_controller._crouch_or_other
 		states.WALK:
-			current_movement_logic = _walk
+			current_movement_logic = _context.movement_controller._walk
 		states.RUN:
-			current_movement_logic = _run
+			current_movement_logic = _context.movement_controller._run
 		states.SLIDE:
-			current_movement_logic = _slide
+			current_movement_logic = _context.movement_controller._slide
 		states.JUMP: _jump()
 		states.DOUBLE_JUMP: _double_jump()
 		states.WALL_JUMP: _wall_jump()
 
 var _context: PlayerContext = PlayerContext.new()
+
+# TODO: Move context initialization to a function in PlayerContext and then call it from corresponding engine callbacks in Player script
 
 func _init_context() -> void:
 	_context.head = %Head
@@ -315,8 +233,6 @@ func _init_context() -> void:
 	_context.state_machine = $MovementStateMachine
 	_context.movement_controller = $MovementController
 	
-	_context.walk_speed = walk_speed
-	_context.crouch_speed = crouch_speed
 	_context.stamina_safe_zone = stamina_safe_zone
 	_context.jump_stamina_drain = jump_stamina_drain
 	_context.double_jump_stamina_drain = double_jump_stamina_drain
@@ -332,8 +248,9 @@ func _build_physics_context() -> void:
 	_context.is_on_wall_only = is_on_wall_only()
 	_context.velocity = velocity
 	_context.movement_directions = movement_directions
-	_context.movement_speed = movement_speed
 	_context.stamina = stamina
+	_context.floor_normal = get_floor_normal()
+	_context.forward_vector = -transform.basis.z
 
 func _unhandled_input(event: InputEvent) -> void:
 	_context.camera_controller.handle_input(event)
@@ -343,21 +260,27 @@ func _ready():
 	
 	_init_context()
 	
+	_context.camera_controller.ready(_context)
+	_context.state_machine.ready(_context)
+	_context.movement_controller.ready(_context)
+	
+	current_movement_logic = _context.movement_controller._crouch_or_other
+	
 	_context.state_machine.state_changed.connect(_on_state_changed)
 
 @onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
 func _process(delta: float) -> void:
-	_context.camera_controller.process(delta, _context)
+	_context.camera_controller.process(delta)
 	
 	_build_process_context()
 		
 	%Debug.text = str(
 		"FPS: ", Engine.get_frames_per_second(), "\n",
 		"Velocity: ", round(velocity), "\n",
-		"Movement Speed: ", snappedf(movement_speed, 0.1), "\n",
-		"Walk Speed: ", snappedf(walk_speed, 0.01), "\n",
-		"Run Speed: ", snappedf(run_speed, 0.01), "\n",
-		"Slide Speed: ", snappedf(slide_speed, 0.01), "\n",
+		"Movement Speed: ", snappedf(_context.movement_controller.movement_speed, 0.1), "\n",
+		"Walk Speed: ", snappedf(_context.movement_controller.walk_speed, 0.01), "\n",
+		"Run Speed: ", snappedf(_context.movement_controller.run_speed, 0.01), "\n",
+		"Slide Speed: ", snappedf(_context.movement_controller.slide_speed, 0.01), "\n",
 		"Movement State: ", movement_states_array[_context.state_machine._current_state], "\n",
 		"Velocity Timeout Time Left: ", _context.movement_controller._velocity_timeout_time_left, "\n",
 		"Stamina: ", snappedf(stamina, 0.1), "\n",
@@ -375,16 +298,16 @@ func _physics_process(delta: float) -> void:
 
 	_build_physics_context()
 
-	_context.state_machine.physics_process(delta, _context) 
+	_context.state_machine.physics_process(delta) 
 
 	current_movement_logic.call()
 	
-	_context.movement_controller.physics_process(delta, _context)
+	_context.movement_controller.physics_process(delta)
 	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
+	var floor_speed: float = _context.movement_controller.crouch_speed + _context.movement_controller.walk_speed + _context.movement_controller.run_speed
+	var speed_before_inertia: float = maxf(0.0, floor_speed + _context.movement_controller.slide_speed)
 
-	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
+	_context.movement_controller.movement_speed = lerpf(_context.movement_controller.movement_speed, speed_before_inertia, 1.0 - exp(-_context.movement_controller.speed_inertia * delta))
 
 	_gravity(delta)
 	movement_velocity()

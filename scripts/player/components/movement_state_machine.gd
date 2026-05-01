@@ -25,13 +25,13 @@ var _context: PlayerContext
 # @onready vars
 
 # _init / _ready
-func _ready() -> void:
+func ready(context: PlayerContext) -> void:
+	_context = context
+	
 	_create_ray_casts()
 
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
-func physics_process(delta: float, context: PlayerContext) -> void:
-	_context = context
-
+func physics_process(delta: float) -> void:
 	_calculate_coyote_time(delta)
 	_reset_double_jump()
 	_current_state = _update_state()
