@@ -1,6 +1,8 @@
 class_name PlayerContext
 extends RefCounted
 
+# TODO: Create abstract class of "Context" that will be a blueprint for all contexts in the game
+
 # TODO (Extracting values to PlayerContext): 
 # In context add a link to certain components (f.e. instead of "var stamin: float" do "var stamina: StaminaComponent")
 # and then in the state machine we can call stamina.consume(amount) or something like that.
