@@ -1,6 +1,0 @@
-class_name PlayerComponentsContextData
-extends ContextData
-
-var camera_controller: CameraController
-var state_machine: MovementStateMachine
-var movement_controller: MovementController

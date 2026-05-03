@@ -232,50 +232,54 @@ var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 func _unhandled_input(event: InputEvent) -> void:
 	_player_context_module.components.camera_controller.handle_input(event)
 
-var node_refs_context_data: PlayerNodeRefsContextData
-var components_context_data: PlayerComponentsContextData
-var init_context_data: PlayerInitContextData
-var physics_context_data: PlayerPhysicsContextData
+var player_context_data: PlayerContextData
 
 func _create_context_data() -> void:
-	node_refs_context_data = PlayerNodeRefsContextData.new()
-	components_context_data = PlayerComponentsContextData.new()
-	init_context_data = PlayerInitContextData.new()
-	physics_context_data = PlayerPhysicsContextData.new()
+	player_context_data = PlayerContextData.new()
 
-func _init_node_refs_context_data() -> void:
-	node_refs_context_data.player = self
-	node_refs_context_data.head = $Head
-	node_refs_context_data.camera = %Camera
-	
-	_player_context_module.init_node_refs(node_refs_context_data)
 
-func _init_components_context_data() -> void:
-	components_context_data.camera_controller = $CameraController
-	components_context_data.state_machine = $MovementStateMachine
-	components_context_data.movement_controller = $MovementController
+func _init_player_node_refs_context_data() -> void:
+	player_context_data.node_refs.player = self
+	player_context_data.node_refs.head = $Head
+	player_context_data.node_refs.camera = %Camera
 	
-	_player_context_module.init_components(components_context_data)
+	_player_context_module.init_node_refs_data(player_context_data.node_refs)
 
-func _init_init_context_data() -> void:
-	init_context_data.stamina_safe_zone = stamina_safe_zone
-	init_context_data.jump_stamina_drain = jump_stamina_drain
-	init_context_data.double_jump_stamina_drain = double_jump_stamina_drain
-	init_context_data.wall_jump_stamina_drain = wall_jump_stamina_drain
+func _init_player_components_context_data() -> void:
+	player_context_data.components.camera_controller = $CameraController
+	player_context_data.components.state_machine = $MovementStateMachine
+	player_context_data.components.movement_controller = $MovementController
 	
-	_player_context_module.init_init_data(init_context_data)
+	_player_context_module.init_components_data(player_context_data.components)
 
-func _update_physics_context_data() -> void:
-	physics_context_data.is_on_floor = is_on_floor()
-	physics_context_data.is_on_wall = is_on_wall()
-	physics_context_data.is_on_wall_only = is_on_wall_only()
-	physics_context_data.velocity = velocity
-	physics_context_data.movement_directions = movement_directions
-	physics_context_data.stamina = stamina
-	physics_context_data.floor_normal = get_floor_normal()
-	physics_context_data.forward_vector = -transform.basis.z
+func _init_player_init_context_data() -> void:
+	player_context_data.init.stamina_safe_zone = stamina_safe_zone
+	player_context_data.init.jump_stamina_drain = jump_stamina_drain
+	player_context_data.init.double_jump_stamina_drain = double_jump_stamina_drain
+	player_context_data.init.wall_jump_stamina_drain = wall_jump_stamina_drain
 	
-	_player_context_module.update_physics_data(physics_context_data)
+	_player_context_module.init_init_data(player_context_data.init)
+
+func _update_player_physics_context_data() -> void:
+	player_context_data.physics.is_on_floor = is_on_floor()
+	player_context_data.physics.is_on_wall = is_on_wall()
+	player_context_data.physics.is_on_wall_only = is_on_wall_only()
+	player_context_data.physics.velocity = velocity
+	player_context_data.physics.movement_directions = movement_directions
+	player_context_data.physics.stamina = stamina
+	player_context_data.physics.floor_normal = get_floor_normal()
+	player_context_data.physics.forward_vector = -transform.basis.z
+	
+	_player_context_module.update_physics_data(player_context_data.physics)
+
+func _build_player_context_data():
+	_create_context_data()
+
+	_init_player_node_refs_context_data()
+	_init_player_components_context_data()
+	_init_player_init_context_data()
+	
+	_update_player_physics_context_data()
 
 func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
@@ -285,11 +289,7 @@ func _pass_player_context_module_to_components() -> void:
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
-	_create_context_data()
-	
-	_init_node_refs_context_data()
-	_init_components_context_data()
-	_init_init_context_data()
+	_build_player_context_data()
 	
 	_pass_player_context_module_to_components()
 	
@@ -318,7 +318,7 @@ func _process(delta: float) -> void:
 	)
 
 func _physics_process(delta: float) -> void:
-	_update_physics_context_data()
+	_update_player_physics_context_data()
 
 	collision_shape_animations(delta) # TODO: Move to collision_animator component
 	calculate_stamina(delta) # TODO: Move to stamina_manager component
