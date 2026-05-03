@@ -102,6 +102,7 @@ func _can_enter_run() -> bool:
 
 	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_player_context_module.components.movement_controller.velocity_timeout
 
+# TODO (UNSLIDE WHEN UNDER CEILING BUG): When stopping sliding with ceiling above the head, player doesn't instantly crouch. It let's player unslide and enters idle movement state
 func _can_enter_crouch() -> bool:
 	var input_crouch: bool = Input.is_action_pressed("crouch")
 	var stuck_under_ceiling: bool = _uncrouch_ray_cast.is_colliding() or _unslide_ray_cast.is_colliding()
