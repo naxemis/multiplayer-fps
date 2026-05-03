@@ -19,6 +19,8 @@ extends CharacterBody3D
 
 # TODO: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
+# TODO: Add license to all scripts and project root
+
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
 var collision_blend_amount: float = 0.0
