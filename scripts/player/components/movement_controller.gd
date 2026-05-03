@@ -43,7 +43,7 @@ extends Node
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
 
 # Private vars (_)
-var _player_context: PlayerContext
+var _player_context_module: PlayerContextModule
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 
 # @onready vars
@@ -55,12 +55,12 @@ func physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
 
 # Public methods (component APIs)
-func pass_player_context(player_context: PlayerContext) -> void:
-	_player_context = player_context
+func pass_player_context_module(player_context: PlayerContextModule) -> void:
+	_player_context_module = player_context
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
-	return _player_context.is_on_floor and _player_context.is_on_wall and _player_context.velocity.z == 0 and _player_context.velocity.x == 0
+	return _player_context_module.physics_data.is_on_floor and _player_context_module.physics_data.is_on_wall and _player_context_module.physics_data.velocity.z == 0 and _player_context_module.physics_data.velocity.x == 0
 
 func _get_velocity_timeout(delta) -> void:
 	_velocity_timeout_left = clampf(_velocity_timeout_left, 0.0, max_timeout_duration)
@@ -105,7 +105,7 @@ func _run() -> void:
 func _slide() -> void:
 	var delta: float = get_physics_process_delta_time()
 
-	var calculating_slope: Vector3 = _player_context.floor_normal * _player_context.forward_vector
+	var calculating_slope: Vector3 = _player_context_module.physics_data.floor_normal * _player_context_module.physics_data.forward_vector
 	var slope_value: float = calculating_slope.z + calculating_slope.x
 	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
 	var slope_interference: float = slope_value * slope_factor

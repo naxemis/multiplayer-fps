@@ -376,7 +376,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_etifa")
 
 [node name="Head" type="Node3D" parent="." unique_id=1543780031]
-unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
 [node name="Camera" type="Camera3D" parent="Head" unique_id=710031663]
@@ -392,13 +391,11 @@ anim_player = NodePath("../CollisionAnimationPlayer")
 "parameters/State Blend/blend_amount" = 0.0
 
 [node name="Debug" type="Label" parent="." unique_id=331414564]
-unique_name_in_owner = true
 offset_right = 40.0
 offset_bottom = 23.0
 theme_override_font_sizes/font_size = 12
 
 [node name="StaminaBar" type="TextureProgressBar" parent="." unique_id=1781604602]
-unique_name_in_owner = true
 offset_top = 715.0
 offset_right = 1280.0
 offset_bottom = 720.0
