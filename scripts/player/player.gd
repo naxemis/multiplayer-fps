@@ -15,9 +15,7 @@ extends CharacterBody3D
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-#region Velocity Timeout
-
-#endregion
+# TODO: Add abstraction class for compoenents that contain "pass_context" method and "process" and "physics_process" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
