@@ -1,11 +1,11 @@
 class_name MovementController
 extends Node
 
-# TODO: Extract movement directions logic from player.gd script to this component
+# TODO (MOVEMENT DIRECTIONS): Extract movement directions logic from player.gd script to this component
 
-# TODO: Extract intertia logic from player.gd script to this component
+# TODO (MOVEMENT INERTIA): Extract intertia logic from player.gd script to this component
 
-# TODO: Extract velocity calculation logic from player.gd script to this component
+# TODO (MOVEMENT VELOCITY): Extract velocity calculation logic from player.gd script to this component
 
 # Signals
 

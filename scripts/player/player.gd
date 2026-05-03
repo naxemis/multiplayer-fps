@@ -1,7 +1,7 @@
 class_name Player
 extends CharacterBody3D
 
-# TODO (REFACTOR PLAN): 
+# TODO (REFACTOR PLAN) [IN PROGRESS]: 
 # TODO: Refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
 # TODO: For example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
 # TODO: Then have the Player script use those components to manage the player's behavior. 
@@ -15,11 +15,11 @@ extends CharacterBody3D
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-# TODO: Add abstraction class for compoenents that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
+# TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for compoenents that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
-# TODO: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
+# TODO (CODE DOCUMENTATION) [IN PROGRESS]: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
-# TODO: Add license to all scripts and project root
+# TODO (PROJECT LICENSE): Add license to all scripts and project root
 
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
@@ -320,10 +320,10 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	_update_player_physics_context_data()
 
-	collision_shape_animations(delta) # TODO: Move to collision_animator component
-	calculate_stamina(delta) # TODO: Move to stamina_manager component
-	get_movement_directions() # TODO: Move to movement_controller component
-	calulcate_movement_inertia(delta) # TODO: Move to movement_controller component
+	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
+	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
+	get_movement_directions() # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
+	calulcate_movement_inertia(delta) # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 
 	_player_context_module.components.state_machine.physics_process(delta) 
 
@@ -331,13 +331,13 @@ func _physics_process(delta: float) -> void:
 	
 	_player_context_module.components.movement_controller.physics_process(delta)
 	
-	# TODO: Move to movement_controller component
+	# TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	var floor_speed: float = _player_context_module.components.movement_controller.crouch_speed + _player_context_module.components.movement_controller.walk_speed + _player_context_module.components.movement_controller.run_speed
 	var speed_before_inertia: float = maxf(0.0, floor_speed + _player_context_module.components.movement_controller.slide_speed)
 
 	_player_context_module.components.movement_controller.movement_speed = lerpf(_player_context_module.components.movement_controller.movement_speed, speed_before_inertia, 1.0 - exp(-_player_context_module.components.movement_controller.speed_inertia * delta))
 
-	_gravity(delta) # TODO: Move to movement_controller component
+	_gravity(delta) # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	
-	movement_velocity() # TODO: Move to movement_controller component
+	movement_velocity() # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	

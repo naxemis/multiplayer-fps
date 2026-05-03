@@ -1,7 +1,7 @@
 class_name PlayerContextModule
 extends ContextModule
 
-# TODO (Extracting values to PlayerContextModule): 
+# TODO (EXTRACTING VALUES TO PLAYER CONTEXT MODULE) [IN PROGRESS]: 
 # In context add a link to certain components (f.e. instead of "var stamin: float" do "var stamina: StaminaComponent")
 # and then in the state machine we can call stamina.consume(amount) or something like that.
 # This way we can avoid having to pass the whole player reference to the context
