@@ -17,6 +17,8 @@ extends CharacterBody3D
 
 # TODO: Add abstraction class for compoenents that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
+# TODO: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
+
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
 var collision_blend_amount: float = 0.0
