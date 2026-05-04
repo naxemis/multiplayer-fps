@@ -1,20 +1,22 @@
 @abstract class_name ContextModule
 extends RefCounted
 
-@abstract class NodeRefs extends RefCounted:
-	pass
+class NodeRefs extends RefCounted:
+	var data
 
-@abstract class Components extends RefCounted:
-	pass
+class Components extends RefCounted:
+	var data
 
-@abstract class Init extends RefCounted:
-	pass
+class Init extends RefCounted:
+	var data
 
-@abstract class Process extends RefCounted:
-	pass
+class Process extends RefCounted:
+	var data
 
-@abstract class Physics extends RefCounted:
-	pass
+class Physics extends RefCounted:
+	var data
+
+@abstract func _init() -> void
 
 @abstract func init_node_refs_data(data: ContextData.NodeRefs) -> void
 

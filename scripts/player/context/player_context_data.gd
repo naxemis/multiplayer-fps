@@ -17,9 +17,6 @@ class Init extends ContextData.Init:
 	var double_jump_stamina_drain: float
 	var wall_jump_stamina_drain: float
 
-class Process extends ContextData.Process:
-	pass
-
 class Physics extends ContextData.Physics:
 	var is_on_floor: bool
 	var is_on_wall: bool

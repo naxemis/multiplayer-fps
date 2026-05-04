@@ -8,8 +8,6 @@ extends ContextModule
 # and also avoid having to have a reference to the state machine in the stamina component (which would create a circular reference).
 
 class NodeRefs extends ContextModule.NodeRefs:
-	var data: PlayerContextData.NodeRefs
-
 	var player: Player: 
 		get: return data.player
 	var head: Node3D:
@@ -18,8 +16,6 @@ class NodeRefs extends ContextModule.NodeRefs:
 		get: return data.camera
 
 class Components extends ContextModule.Components:
-	var data: PlayerContextData.Components
-
 	var camera_controller: CameraController:
 		get: return data.camera_controller
 	var state_machine: MovementStateMachine:
@@ -28,8 +24,6 @@ class Components extends ContextModule.Components:
 		get: return data.movement_controller
 
 class Init extends ContextModule.Init:
-	var data: PlayerContextData.Init
-
 	var stamina_safe_zone: float:
 		get: return data.stamina_safe_zone
 	var jump_stamina_drain: float:
@@ -39,12 +33,7 @@ class Init extends ContextModule.Init:
 	var wall_jump_stamina_drain: float:
 		get: return data.wall_jump_stamina_drain
 	
-class Process extends ContextModule.Process:
-	pass
-	
 class Physics extends ContextModule.Physics:
-	var data: PlayerContextData.Physics
-
 	var is_on_floor: bool:
 		get: return data.is_on_floor
 	var is_on_wall: bool:
@@ -74,16 +63,16 @@ func _init() -> void:
 	physics = Physics.new()
 	
 func init_node_refs_data(data: ContextData.NodeRefs) -> void:
-	node_refs.data = data as PlayerContextData.NodeRefs
+	node_refs.data = data
 
 func init_components_data(data: ContextData.Components) -> void:
-	components.data = data as PlayerContextData.Components
+	components.data = data
 	
 func init_init_data(data: ContextData.Init) -> void:	
-	init.data = data as PlayerContextData.Init
+	init.data = data
 
 func update_process_data(data: ContextData.Process) -> void:
 	assert(false, "No process data for player context module. Don't use update_process_data!")
 
 func update_physics_data(data: ContextData.Physics) -> void:
-	physics.data = data as PlayerContextData.Physics
+	physics.data = data
