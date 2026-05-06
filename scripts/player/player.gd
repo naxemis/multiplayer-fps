@@ -15,7 +15,7 @@ extends CharacterBody3D
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-# TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for compoenents that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
+# TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for components that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
 # TODO (CODE DOCUMENTATION) [IN PROGRESS]: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
@@ -105,9 +105,6 @@ func calculate_stamina(delta) -> void:
 #region Movement Directions and Inertia
 # in what direction player is trying to move
 var movement_directions: Vector3
-func get_movement_directions() -> void:
-	movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-	movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
 @export_category("Movement Inertia")
 var inertia_movement_directions: Vector3
@@ -120,8 +117,8 @@ func calulcate_movement_inertia(delta) -> void:
 	else:
 		current_inertia = in_air_inertia
 	
-	inertia_movement_directions.x = lerpf(inertia_movement_directions.x, movement_directions.x, current_inertia * delta)
-	inertia_movement_directions.z = lerpf(inertia_movement_directions.z, movement_directions.z, current_inertia * delta)
+	inertia_movement_directions.x = lerpf(inertia_movement_directions.x, _player_context_module.components.movement_controller.movement_directions().x, current_inertia * delta)
+	inertia_movement_directions.z = lerpf(inertia_movement_directions.z, _player_context_module.components.movement_controller.movement_directions().z, current_inertia * delta)
 #endregion
 
 #region Gravity, Jumping and Double Jumping
@@ -232,66 +229,64 @@ var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 func _unhandled_input(event: InputEvent) -> void:
 	_player_context_module.components.camera_controller.handle_input(event)
 
-var player_context_data: PlayerContextData
+var _player_context_data: PlayerContextData
 
 func _create_context_data() -> void:
-	player_context_data = PlayerContextData.new()
+	_player_context_data = PlayerContextData.new()
 
 
 func _init_player_node_refs_context_data() -> void:
-	player_context_data.node_refs.player = self
-	player_context_data.node_refs.head = $Head
-	player_context_data.node_refs.camera = %Camera
+	_player_context_data.node_refs.player = self
+	_player_context_data.node_refs.head = $Head
+	_player_context_data.node_refs.camera = %Camera
 	
-	_player_context_module.init_node_refs_data(player_context_data.node_refs)
+	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
 
 func _init_player_components_context_data() -> void:
-	player_context_data.components.camera_controller = $CameraController
-	player_context_data.components.state_machine = $MovementStateMachine
-	player_context_data.components.movement_controller = $MovementController
+	_player_context_data.components.camera_controller = $CameraController
+	_player_context_data.components.state_machine = $StateMachine
+	_player_context_data.components.movement_controller = $MovementController
 	
-	_player_context_module.init_components_data(player_context_data.components)
+	_player_context_module.init_components_data(_player_context_data.components)
 
 func _init_player_init_context_data() -> void:
-	player_context_data.init.stamina_safe_zone = stamina_safe_zone
-	player_context_data.init.jump_stamina_drain = jump_stamina_drain
-	player_context_data.init.double_jump_stamina_drain = double_jump_stamina_drain
-	player_context_data.init.wall_jump_stamina_drain = wall_jump_stamina_drain
+	_player_context_data.init.stamina_safe_zone = stamina_safe_zone
+	_player_context_data.init.jump_stamina_drain = jump_stamina_drain
+	_player_context_data.init.double_jump_stamina_drain = double_jump_stamina_drain
+	_player_context_data.init.wall_jump_stamina_drain = wall_jump_stamina_drain
 	
-	_player_context_module.init_init_data(player_context_data.init)
+	_player_context_module.init_init_data(_player_context_data.init)
 
 func _update_player_physics_context_data() -> void:
-	player_context_data.physics.is_on_floor = is_on_floor()
-	player_context_data.physics.is_on_wall = is_on_wall()
-	player_context_data.physics.is_on_wall_only = is_on_wall_only()
-	player_context_data.physics.velocity = velocity
-	player_context_data.physics.movement_directions = movement_directions
-	player_context_data.physics.stamina = stamina
-	player_context_data.physics.floor_normal = get_floor_normal()
-	player_context_data.physics.forward_vector = -transform.basis.z
+	_player_context_data.physics.is_on_floor = is_on_floor()
+	_player_context_data.physics.is_on_wall = is_on_wall()
+	_player_context_data.physics.is_on_wall_only = is_on_wall_only()
+	_player_context_data.physics.velocity = velocity
+	_player_context_data.physics.stamina = stamina
+	_player_context_data.physics.floor_normal = get_floor_normal()
+	_player_context_data.physics.forward_vector = -transform.basis.z
 	
-	_player_context_module.update_physics_data(player_context_data.physics)
-
-func _build_player_context_data():
-	_create_context_data()
-
-	_init_player_node_refs_context_data()
-	_init_player_components_context_data()
-	_init_player_init_context_data()
-	
-	_update_player_physics_context_data()
+	_player_context_module.update_physics_data(_player_context_data.physics)
 
 func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
 	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
 
+func _build_player_context_data():
+	_create_context_data()
+
+	_init_player_node_refs_context_data()
+	_init_player_components_context_data()
+	_pass_player_context_module_to_components()
+	_init_player_init_context_data()
+	
+	_update_player_physics_context_data()
+
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	
+
 	_build_player_context_data()
-	
-	_pass_player_context_module_to_components()
 	
 	current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
 	
@@ -322,7 +317,6 @@ func _physics_process(delta: float) -> void:
 
 	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
 	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
-	get_movement_directions() # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	calulcate_movement_inertia(delta) # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 
 	_player_context_module.components.state_machine.physics_process(delta) 

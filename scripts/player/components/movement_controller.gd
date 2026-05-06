@@ -1,11 +1,11 @@
 class_name MovementController
 extends Node
 
-# TODO (MOVEMENT DIRECTIONS): Extract movement directions logic from player.gd script to this component
-
 # TODO (MOVEMENT INERTIA): Extract intertia logic from player.gd script to this component
 
 # TODO (MOVEMENT VELOCITY): Extract velocity calculation logic from player.gd script to this component
+
+# TODO (JUMP AND GRAVITY): Extract jump and gravity logic from player.gd to this component
 
 # Signals
 
@@ -45,6 +45,7 @@ var velocity_timeout: bool = false # true - player is walking into wall for too 
 # Private vars (_)
 var _player_context_module: PlayerContextModule
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
+var _movement_directions: Vector3
 
 # @onready vars
 
@@ -53,10 +54,14 @@ var _velocity_timeout_left: float = 0.0 # current time before timeout is set to 
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
 func physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
+	_calculate_movement_directions()
 
 # Public methods (component APIs)
 func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_player_context_module = player_context
+
+func movement_directions() -> Vector3:
+	return _movement_directions
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
@@ -124,3 +129,9 @@ func _crouch_or_other() -> void:
 	
 	slide_speed -= slide_crouch_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
+
+func _calculate_movement_directions() -> void:
+	_movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
+
+	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
+

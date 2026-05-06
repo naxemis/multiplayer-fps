@@ -18,7 +18,7 @@ class NodeRefs extends ContextModule.NodeRefs:
 class Components extends ContextModule.Components:
 	var camera_controller: CameraController:
 		get: return data.camera_controller
-	var state_machine: MovementStateMachine:
+	var state_machine: StateMachine:
 		get: return data.state_machine
 	var movement_controller: MovementController:
 		get: return data.movement_controller
@@ -42,8 +42,6 @@ class Physics extends ContextModule.Physics:
 		get: return data.is_on_wall_only
 	var velocity: Vector3:
 		get: return data.velocity
-	var movement_directions: Vector3:
-		get: return data.movement_directions
 	var stamina: float:
 		get: return data.stamina
 	var floor_normal: Vector3:

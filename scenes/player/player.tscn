@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://efyrk30thy3j" path="res://scripts/player/player.gd" id="1_lvxji"]
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
 [ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
-[ext_resource type="Script" uid="uid://2rfx3ju40d5h" path="res://scripts/player/components/movement_state_machine.gd" id="5_p47bc"]
+[ext_resource type="Script" uid="uid://38fy41t752js" path="res://scripts/player/components/state_machine.gd" id="6_0owmy"]
 [ext_resource type="Script" uid="uid://bh5rnhj8l3hv0" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
@@ -409,9 +409,9 @@ texture_progress = SubResource("GradientTexture2D_vrsjq")
 script = ExtResource("3_gmlin")
 metadata/_custom_type_script = "uid://bnfl516agpv3d"
 
-[node name="MovementStateMachine" type="Node" parent="." unique_id=1171073279]
-script = ExtResource("5_p47bc")
-metadata/_custom_type_script = "uid://2rfx3ju40d5h"
+[node name="StateMachine" type="Node" parent="." unique_id=1583199222]
+script = ExtResource("6_0owmy")
+metadata/_custom_type_script = "uid://38fy41t752js"
 
 [node name="MovementController" type="Node" parent="." unique_id=1722138228]
 script = ExtResource("6_75vfm")
