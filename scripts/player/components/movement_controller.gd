@@ -11,7 +11,7 @@ extends Node
 
 # @export vars
 @export_category("Velocity Timeout")
-@export var max_timeout_duration: float = 0.5 # how long player have to walk into wall before timeout
+@export var max_timeout_duration: float = 0.5
 
 @export_category("Crouching and Walking")
 @export var crouch_speed: float = 2.0
@@ -26,13 +26,13 @@ extends Node
 @export_category("Sliding")
 @export var max_slide_speed: float = 2.5
 
-@export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
-@export var slope_uphill_brake_factor: float = 0.85 # how much uphill brakes slide
-@export var slope_downhill_boost_factor: float = 0.5 # how much downhill boosts slide
+@export var slide_buff_multiplier: float = 0.15
+@export var slope_uphill_brake_factor: float = 0.85
+@export var slope_downhill_boost_factor: float = 0.5
 
-@export var slide_run_decrease: float = 0.05 # decrease when switching to running
-@export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
-@export var slide_crouch_decrease: float = 4.0 # decrease when switching to crouching
+@export var slide_speed_run_decrease: float = 0.05
+@export var slide_speed_walk_decrease: float = 2.5
+@export var slide_speed_crouch_decrease: float = 4.0
 
 @export_category("Speed Inertia")
 @export var speed_inertia: float = 7.5
@@ -102,7 +102,7 @@ func _walk() -> void:
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
 	var floor_speed: float = crouch_speed + walk_speed + run_speed
-	slide_speed -= floor_speed * slide_walk_decrease * delta
+	slide_speed -= floor_speed * slide_speed_walk_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 	
 func _run() -> void:
@@ -112,7 +112,7 @@ func _run() -> void:
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
 	var floor_speed: float = crouch_speed + walk_speed + run_speed
-	slide_speed -= floor_speed * slide_run_decrease * delta
+	slide_speed -= floor_speed * slide_speed_run_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
 func _slide() -> void:
@@ -135,7 +135,7 @@ func _crouch_or_other() -> void:
 	run_speed -= run_crouch_decrease * delta
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 	
-	slide_speed -= slide_crouch_decrease * delta
+	slide_speed -= slide_speed_crouch_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
 func _calculate_movement_directions() -> void:
