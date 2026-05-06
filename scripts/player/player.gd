@@ -102,23 +102,7 @@ func calculate_stamina(delta) -> void:
 	$StaminaBar.max_value = max_stamina
 #endregion
 
-#region Movement Directions and Inertia
-# in what direction player is trying to move
 var movement_directions: Vector3
-
-@export_category("Movement Inertia")
-var inertia_movement_directions: Vector3
-var current_inertia: float
-@export var on_ground_inertia: float = 8.0
-@export var in_air_inertia: float = 4.0
-func calulcate_movement_inertia(delta) -> void:
-	if is_on_floor():
-		current_inertia = on_ground_inertia
-	else:
-		current_inertia = in_air_inertia
-	
-	inertia_movement_directions.x = lerpf(inertia_movement_directions.x, _player_context_module.components.movement_controller.movement_directions().x, current_inertia * delta)
-	inertia_movement_directions.z = lerpf(inertia_movement_directions.z, _player_context_module.components.movement_controller.movement_directions().z, current_inertia * delta)
 #endregion
 
 #region Gravity, Jumping and Double Jumping
@@ -190,9 +174,9 @@ func _wall_jump() -> void:
 #endregion
 
 func movement_velocity() -> void:
-	var transform_x: Vector3 = global_transform.basis.x * inertia_movement_directions.x
+	var transform_x: Vector3 = global_transform.basis.x * _player_context_module.components.movement_controller.inertia_movement_directions().x
 	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
-	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
+	var transform_z: Vector3 = global_transform.basis.z * _player_context_module.components.movement_controller.inertia_movement_directions().z
 	
 	if _player_context_module.components.state_machine._current_state != _player_context_module.components.state_machine.MovementStates.WALL_JUMP:
 		velocity = (transform_x + transform_z) * _player_context_module.components.movement_controller.movement_speed + transform_y
@@ -317,7 +301,6 @@ func _physics_process(delta: float) -> void:
 
 	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
 	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
-	calulcate_movement_inertia(delta) # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 
 	_player_context_module.components.state_machine.physics_process(delta) 
 

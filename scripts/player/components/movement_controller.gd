@@ -1,8 +1,6 @@
 class_name MovementController
 extends Node
 
-# TODO (MOVEMENT INERTIA): Extract intertia logic from player.gd script to this component
-
 # TODO (MOVEMENT VELOCITY): Extract velocity calculation logic from player.gd script to this component
 
 # TODO (JUMP AND GRAVITY): Extract jump and gravity logic from player.gd to this component
@@ -39,6 +37,10 @@ extends Node
 @export_category("Speed Inertia")
 @export var speed_inertia: float = 7.5
 
+@export_category("Movement Inertia")
+@export var on_ground_inertia: float = 8.0
+@export var in_air_inertia: float = 4.0
+
 # Public vars
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
 
@@ -46,6 +48,8 @@ var velocity_timeout: bool = false # true - player is walking into wall for too 
 var _player_context_module: PlayerContextModule
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 var _movement_directions: Vector3
+var _inertia_movement_directions: Vector3
+var _current_inertia: float
 
 # @onready vars
 
@@ -55,6 +59,7 @@ var _movement_directions: Vector3
 func physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
 	_calculate_movement_directions()
+	_calulcate_movement_inertia(delta)
 
 # Public methods (component APIs)
 func pass_player_context_module(player_context: PlayerContextModule) -> void:
@@ -62,6 +67,9 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 
 func movement_directions() -> Vector3:
 	return _movement_directions
+
+func inertia_movement_directions() -> Vector3:
+	return _inertia_movement_directions
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
@@ -132,6 +140,12 @@ func _crouch_or_other() -> void:
 
 func _calculate_movement_directions() -> void:
 	_movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-
 	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
+func _calulcate_movement_inertia(delta) -> void:
+	match _player_context_module.physics.is_on_floor:
+		true: _current_inertia = on_ground_inertia
+		false: _current_inertia = in_air_inertia
+	
+	_inertia_movement_directions.x = lerpf(_inertia_movement_directions.x, movement_directions().x, _current_inertia * delta)
+	_inertia_movement_directions.z = lerpf(_inertia_movement_directions.z, movement_directions().z, _current_inertia * delta)
