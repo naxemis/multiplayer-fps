@@ -102,19 +102,6 @@ func calculate_stamina(delta) -> void:
 	$StaminaBar.max_value = max_stamina
 #endregion
 
-func movement_velocity() -> void:
-	var transform_x: Vector3 = global_transform.basis.x * _player_context_module.components.movement_controller.get_inertia_movement_directions().x
-	var transform_y: Vector3 = global_transform.basis.y * _player_context_module.components.movement_controller.get_movement_directions().y
-	var transform_z: Vector3 = global_transform.basis.z * _player_context_module.components.movement_controller.get_inertia_movement_directions().z
-	
-	if _player_context_module.components.state_machine._current_state != _player_context_module.components.state_machine.MovementStates.WALL_JUMP:
-		velocity = (transform_x + transform_z) * _player_context_module.components.movement_controller.movement_speed + transform_y
-	else:
-		velocity = _player_context_module.components.movement_controller.get_wall_jump_directions() * _player_context_module.components.movement_controller.movement_speed + transform_y
-		
-	
-	move_and_slide()
-
 var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
@@ -207,12 +194,6 @@ func _physics_process(delta: float) -> void:
 	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
 
 	current_movement_logic.call()
-	
-	# TODO (MOVEMENT CONTROLLER): Move to movement_controller component
-	var floor_speed: float = _player_context_module.components.movement_controller.crouch_speed + _player_context_module.components.movement_controller.walk_speed + _player_context_module.components.movement_controller.run_speed
-	var speed_before_inertia: float = maxf(0.0, floor_speed + _player_context_module.components.movement_controller.slide_speed)
 
-	_player_context_module.components.movement_controller.movement_speed = lerpf(_player_context_module.components.movement_controller.movement_speed, speed_before_inertia, 1.0 - exp(-_player_context_module.components.movement_controller.speed_inertia * delta))
-	
-	movement_velocity() # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
+	_player_context_module.components.movement_controller.compute_movement_velocity()
 	

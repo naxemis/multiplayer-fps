@@ -73,6 +73,7 @@ func _physics_process(delta: float) -> void:
 	_calculate_get_movement_directions()
 	_calulcate_movement_inertia(delta)
 	_gravity(delta)
+	_update_movement_speed(delta)
 
 # Public methods (component APIs)
 func pass_player_context_module(player_context: PlayerContextModule) -> void:
@@ -86,6 +87,11 @@ func get_inertia_movement_directions() -> Vector3:
 
 func get_wall_jump_directions() -> Vector3:
 	return _wall_jump_directions
+
+func _update_movement_speed(delta: float) -> void:
+	var floor_speed: float = crouch_speed + walk_speed + run_speed
+	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
+	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
 func jump() -> void:
 	_movement_directions.y = 0
@@ -128,6 +134,21 @@ func wall_jump() -> void:
 
 	if _player_context_module.node_refs.player.is_on_floor():
 		_reset_wall_jumping_directions()
+
+func compute_movement_velocity() -> void:
+	var player: Player = _player_context_module.node_refs.player
+	var state_machine: StateMachine = _player_context_module.components.state_machine
+
+	var transform_x: Vector3 = player.global_transform.basis.x * _inertia_movement_directions.x
+	var transform_y: Vector3 = player.global_transform.basis.y * _movement_directions.y
+	var transform_z: Vector3 = player.global_transform.basis.z * _inertia_movement_directions.z
+
+	if state_machine._current_state != state_machine.MovementStates.WALL_JUMP:
+		player.velocity = (transform_x + transform_z) * movement_speed + transform_y
+	else:
+		player.velocity = _wall_jump_directions * movement_speed + transform_y
+
+	player.move_and_slide()
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
