@@ -102,86 +102,15 @@ func calculate_stamina(delta) -> void:
 	$StaminaBar.max_value = max_stamina
 #endregion
 
-var movement_directions: Vector3
-#endregion
-
-#region Gravity, Jumping and Double Jumping
-@export_category("Gravity")
-# applies gravity to player's body, when it's not on floor
-@export var gravity_force: float = 18.0
-func _gravity(delta) -> void:
-	if !is_on_floor():
-		movement_directions.y -= gravity_force * delta
-	else:
-		pass
-
-@export_category("Jumping")
-# adds jumping mechanic to player's movement
-@export var jump_velocity: float = 7.5
-func _jump() -> void:
-	movement_directions.y = 0
-	movement_directions.y += jump_velocity
-		
-	_player_context_module.components.state_machine.consume_coyote()
-		
-	one_time_stamina_drain(jump_stamina_drain)
-
-@export_category("Double Jumping")
-@export var double_jump_multiplier: float = 0.7
-@export var can_double_jump_after_wall_jump: bool = false
-func _double_jump() -> void:
-	if movement_directions.y < 0:
-		movement_directions.y = 0.0
-		
-	movement_directions.y += jump_velocity * double_jump_multiplier
-		
-	one_time_stamina_drain(double_jump_stamina_drain)
-		
-	reset_wall_jumping_directions()
-#endregion
-
-#region Wall Jumping
-@export_category("Wall Jumping")
-var wall_jump_direction: Vector3
-@export var vertical_jump_multiplier: float = 0.85
-@export var min_vertical_jump: float = 5.0
-@export var max_vertical_jump: float = 7.5
-func reset_wall_jumping_directions() -> void:
-	wall_jump_direction = Vector3(1, 0, 1)
-
-func _wall_jump() -> void:
-	if _player_context_module.components.state_machine._can_enter_wall_jump():
-		reset_wall_jumping_directions()
-		
-		# calculates and clamps vertical jump force after wall jumping
-		var vertical_jump: float = _player_context_module.components.movement_controller.movement_speed * vertical_jump_multiplier 
-		vertical_jump = clampf(vertical_jump, min_vertical_jump, max_vertical_jump)
-		
-		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
-		movement_directions.y = 0.0
-		movement_directions.y += vertical_jump
-		
-		# direction of wall jump
-		if !Input.is_action_pressed("change_wall_jump_direction"): # player wants to jump in same direction he jumped from
-			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
-		else: # player wants to "bounce" from a wall
-			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * -movement_directions)
-		
-		one_time_stamina_drain(wall_jump_stamina_drain)
-	
-	if is_on_floor():
-		reset_wall_jumping_directions()
-#endregion
-
 func movement_velocity() -> void:
-	var transform_x: Vector3 = global_transform.basis.x * _player_context_module.components.movement_controller.inertia_movement_directions().x
-	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
-	var transform_z: Vector3 = global_transform.basis.z * _player_context_module.components.movement_controller.inertia_movement_directions().z
+	var transform_x: Vector3 = global_transform.basis.x * _player_context_module.components.movement_controller.get_inertia_movement_directions().x
+	var transform_y: Vector3 = global_transform.basis.y * _player_context_module.components.movement_controller.get_movement_directions().y
+	var transform_z: Vector3 = global_transform.basis.z * _player_context_module.components.movement_controller.get_inertia_movement_directions().z
 	
 	if _player_context_module.components.state_machine._current_state != _player_context_module.components.state_machine.MovementStates.WALL_JUMP:
 		velocity = (transform_x + transform_z) * _player_context_module.components.movement_controller.movement_speed + transform_y
 	else:
-		velocity = wall_jump_direction * _player_context_module.components.movement_controller.movement_speed + transform_y
+		velocity = _player_context_module.components.movement_controller.get_wall_jump_directions() * _player_context_module.components.movement_controller.movement_speed + transform_y
 		
 	
 	move_and_slide()
@@ -194,17 +123,13 @@ func _on_state_changed(new_state):
 	print(new_state)
 	
 	match new_state:
-		states.IDLE, states.CROUCH:
-			current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
-		states.WALK:
-			current_movement_logic = _player_context_module.components.movement_controller._walk
-		states.RUN:
-			current_movement_logic = _player_context_module.components.movement_controller._run
-		states.SLIDE:
-			current_movement_logic = _player_context_module.components.movement_controller._slide
-		states.JUMP: _jump()
-		states.DOUBLE_JUMP: _double_jump()
-		states.WALL_JUMP: _wall_jump()
+		states.IDLE, states.CROUCH: current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
+		states.WALK: current_movement_logic = _player_context_module.components.movement_controller._walk
+		states.RUN: current_movement_logic = _player_context_module.components.movement_controller._run
+		states.SLIDE: current_movement_logic = _player_context_module.components.movement_controller._slide
+		states.JUMP: _player_context_module.components.movement_controller.jump()
+		states.DOUBLE_JUMP: _player_context_module.components.movement_controller.double_jump()
+		states.WALL_JUMP: _player_context_module.components.movement_controller.wall_jump()
 
 var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 
@@ -313,8 +238,6 @@ func _physics_process(delta: float) -> void:
 	var speed_before_inertia: float = maxf(0.0, floor_speed + _player_context_module.components.movement_controller.slide_speed)
 
 	_player_context_module.components.movement_controller.movement_speed = lerpf(_player_context_module.components.movement_controller.movement_speed, speed_before_inertia, 1.0 - exp(-_player_context_module.components.movement_controller.speed_inertia * delta))
-
-	_gravity(delta) # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	
 	movement_velocity() # TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	

@@ -41,6 +41,21 @@ extends Node
 @export var on_ground_inertia: float = 8.0
 @export var in_air_inertia: float = 4.0
 
+@export_category("Gravity")
+@export var gravity_force: float = 18.0
+
+@export_category("Jumping")
+@export var jump_velocity: float = 7.5
+
+@export_category("Double Jumping")
+@export var double_jump_multiplier: float = 0.7
+@export var can_double_jump_after_wall_jump: bool = false
+
+@export_category("Wall Jumping")
+@export var vertical_jump_multiplier: float = 0.85
+@export var min_vertical_jump: float = 5.0
+@export var max_vertical_jump: float = 7.5
+
 # Public vars
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
 
@@ -50,6 +65,7 @@ var _velocity_timeout_left: float = 0.0 # current time before timeout is set to 
 var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
 var _current_inertia: float
+var _wall_jump_directions: Vector3
 
 # @onready vars
 
@@ -58,18 +74,64 @@ var _current_inertia: float
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
 func physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
-	_calculate_movement_directions()
+	_calculate_get_movement_directions()
 	_calulcate_movement_inertia(delta)
+	_gravity(delta)
 
 # Public methods (component APIs)
 func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_player_context_module = player_context
 
-func movement_directions() -> Vector3:
+func get_movement_directions() -> Vector3:
 	return _movement_directions
 
-func inertia_movement_directions() -> Vector3:
+func get_inertia_movement_directions() -> Vector3:
 	return _inertia_movement_directions
+
+func get_wall_jump_directions() -> Vector3:
+	return _wall_jump_directions
+
+func jump() -> void:
+	_movement_directions.y = 0
+	_movement_directions.y += jump_velocity
+		
+	_player_context_module.components.state_machine.consume_coyote()
+		
+	_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.init.jump_stamina_drain)
+
+func double_jump() -> void:
+	if get_movement_directions().y < 0:
+		_movement_directions.y = 0.0
+
+	_movement_directions.y += jump_velocity * double_jump_multiplier
+
+	_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.init.double_jump_stamina_drain)
+
+	_reset_wall_jumping_directions()
+
+func wall_jump() -> void:
+	if _player_context_module.components.state_machine._can_enter_wall_jump():
+		_reset_wall_jumping_directions()
+
+		# calculates and clamps vertical jump force after wall jumping
+		var vertical_jump: float = movement_speed * vertical_jump_multiplier
+		vertical_jump = clampf(vertical_jump, min_vertical_jump, max_vertical_jump)
+
+		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
+		_movement_directions.y = 0.0
+		_movement_directions.y += vertical_jump
+
+		var player_transform: Transform3D = _player_context_module.node_refs.player.transform
+		# direction of wall jump
+		if !Input.is_action_pressed("change_wall_jump_directions"): # player wants to jump in same direction he jumped from
+			_wall_jump_directions = -_player_context_module.physics.get_wall_normal.direction_to(-player_transform.basis.z * _movement_directions)
+		else: # player wants to "bounce" from a wall
+			_wall_jump_directions = -_player_context_module.physics.get_wall_normal.direction_to(-player_transform.basis.z * -_movement_directions)
+
+		_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.init.wall_jump_stamina_drain)
+	
+	if _player_context_module.physics.is_on_floor:
+		_reset_wall_jumping_directions()
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
@@ -88,7 +150,6 @@ func _get_velocity_timeout(delta) -> void:
 	else:
 		velocity_timeout = false
 
-#region Movement Speed
 var movement_speed: float = 0.0
 
 var run_speed: float = 0.0
@@ -138,7 +199,7 @@ func _crouch_or_other() -> void:
 	slide_speed -= slide_speed_crouch_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
-func _calculate_movement_directions() -> void:
+func _calculate_get_movement_directions() -> void:
 	_movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
 	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
@@ -147,5 +208,14 @@ func _calulcate_movement_inertia(delta) -> void:
 		true: _current_inertia = on_ground_inertia
 		false: _current_inertia = in_air_inertia
 	
-	_inertia_movement_directions.x = lerpf(_inertia_movement_directions.x, movement_directions().x, _current_inertia * delta)
-	_inertia_movement_directions.z = lerpf(_inertia_movement_directions.z, movement_directions().z, _current_inertia * delta)
+	_inertia_movement_directions.x = lerpf(_inertia_movement_directions.x, get_movement_directions().x, _current_inertia * delta)
+	_inertia_movement_directions.z = lerpf(_inertia_movement_directions.z, get_movement_directions().z, _current_inertia * delta)
+
+func _gravity(delta) -> void:
+	if !_player_context_module.physics.is_on_floor:
+		_movement_directions.y -= gravity_force * delta
+	else:
+		pass
+
+func _reset_wall_jumping_directions() -> void:
+	_wall_jump_directions = Vector3(1, 0, 1)

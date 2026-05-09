@@ -56,10 +56,10 @@ func _create_ray_casts() -> bool:
 	return true
 
 func _is_moving() -> bool:
-	return _player_context_module.components.movement_controller.movement_directions().x != 0 or _player_context_module.components.movement_controller.movement_directions().z != 0
+	return _player_context_module.components.movement_controller.get_movement_directions().x != 0 or _player_context_module.components.movement_controller.get_movement_directions().z != 0
 
 func _is_moving_forward() -> bool:
-	return _player_context_module.components.movement_controller.movement_directions().x < 0
+	return _player_context_module.components.movement_controller.get_movement_directions().x < 0
 
 func _has_stamina_for(cost: float) -> bool:
 	return _player_context_module.physics.stamina - cost > 0 and _player_context_module.physics.stamina > _player_context_module.init.stamina_safe_zone
