@@ -29,7 +29,7 @@ func _ready() -> void:
 	_create_ray_casts()
 
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
-func physics_process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	_calculate_coyote_time(delta)
 	_reset_double_jump()
 	_current_state = _update_state()
@@ -59,16 +59,16 @@ func _is_moving() -> bool:
 	return _player_context_module.components.movement_controller.get_movement_directions().x != 0 or _player_context_module.components.movement_controller.get_movement_directions().z != 0
 
 func _is_moving_forward() -> bool:
-	return _player_context_module.components.movement_controller.get_movement_directions().x < 0
+	return _player_context_module.components.movement_controller.get_movement_directions().z < 0
 
 func _has_stamina_for(cost: float) -> bool:
-	return _player_context_module.physics.stamina - cost > 0 and _player_context_module.physics.stamina > _player_context_module.init.stamina_safe_zone
+	return _player_context_module.node_refs.player.stamina - cost > 0 and _player_context_module.node_refs.player.stamina > _player_context_module.node_refs.player.stamina_safe_zone
 
 func _minimum_stamina(minimum: float) -> bool:
-	return _player_context_module.physics.stamina > minimum
+	return _player_context_module.node_refs.player.stamina > minimum
 
 func _is_on_ground() -> bool:
-	return _player_context_module.physics.is_on_floor and _player_context_module.physics.velocity.y <= 0
+	return _player_context_module.node_refs.player.is_on_floor() and _player_context_module.node_refs.player.velocity.y <= 0
 
 func _is_airborne_state(state: int) -> bool:
 	return state == MovementStates.JUMP \
@@ -118,24 +118,24 @@ func _can_enter_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
 	var no_blocked_state: bool = _current_state != MovementStates.CROUCH
 
-	return input_jump and _can_jump_off_ground() and no_blocked_state and _has_stamina_for(_player_context_module.init.jump_stamina_drain)
+	return input_jump and _can_jump_off_ground() and no_blocked_state and _has_stamina_for(_player_context_module.node_refs.player.jump_stamina_drain)
 
 func _can_enter_double_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
 	var in_air: bool = !_is_on_ground() and !_coyote_time_active
 	
-	return input_jump and in_air and _has_stamina_for(_player_context_module.init.double_jump_stamina_drain) and _can_double_jump
-	
+	return input_jump and in_air and _has_stamina_for(_player_context_module.node_refs.player.double_jump_stamina_drain) and _can_double_jump
+
 func _can_enter_wall_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and _player_context_module.physics.is_on_wall_only and _is_moving() and _has_stamina_for(_player_context_module.init.wall_jump_stamina_drain)
+	return Input.is_action_just_pressed("jump") and _player_context_module.node_refs.player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player_context_module.node_refs.player.wall_jump_stamina_drain)
 
 func _can_enter_fall() -> bool:
 	var can_fall_from_current_state: bool = _current_state != MovementStates.WALL_JUMP
 
-	return _is_airborne_state(_current_state) and !_player_context_module.physics.is_on_wall_only and _player_context_module.physics.velocity.y < 0 and can_fall_from_current_state
+	return _is_airborne_state(_current_state) and !_player_context_module.node_refs.player.is_on_wall_only() and _player_context_module.node_refs.player.velocity.y < 0 and can_fall_from_current_state
 
 func _is_above_stamina_safe_zone() -> bool:
-	return _player_context_module.physics.stamina > _player_context_module.init.stamina_safe_zone
+	return _player_context_module.node_refs.player.stamina > _player_context_module.node_refs.player.stamina_safe_zone
 
 func _compute_next_state() -> int:
 	if _can_enter_jump(): return MovementStates.JUMP

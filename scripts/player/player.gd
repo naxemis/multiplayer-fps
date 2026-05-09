@@ -17,7 +17,7 @@ extends CharacterBody3D
 
 # TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for components that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
-# TODO (CODE DOCUMENTATION) [IN PROGRESS]: Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
+# TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
 # TODO (PROJECT LICENSE): Add license to all scripts and project root
 
@@ -155,57 +155,28 @@ func _init_player_components_context_data() -> void:
 	_player_context_data.components.camera_controller = $CameraController
 	_player_context_data.components.state_machine = $StateMachine
 	_player_context_data.components.movement_controller = $MovementController
-	
+
 	_player_context_module.init_components_data(_player_context_data.components)
-
-func _init_player_init_context_data() -> void:
-	_player_context_data.init.stamina_safe_zone = stamina_safe_zone
-	_player_context_data.init.jump_stamina_drain = jump_stamina_drain
-	_player_context_data.init.double_jump_stamina_drain = double_jump_stamina_drain
-	_player_context_data.init.wall_jump_stamina_drain = wall_jump_stamina_drain
-	
-	_player_context_module.init_init_data(_player_context_data.init)
-
-func _update_player_physics_context_data() -> void:
-	_player_context_data.physics.is_on_floor = is_on_floor()
-	_player_context_data.physics.is_on_wall = is_on_wall()
-	_player_context_data.physics.is_on_wall_only = is_on_wall_only()
-	_player_context_data.physics.velocity = velocity
-	_player_context_data.physics.stamina = stamina
-	_player_context_data.physics.floor_normal = get_floor_normal()
-	_player_context_data.physics.forward_vector = -transform.basis.z
-	
-	_player_context_module.update_physics_data(_player_context_data.physics)
 
 func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
 	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
 
-func _build_player_context_data():
+func _build_player_context_data() -> void:
 	_create_context_data()
 
 	_init_player_node_refs_context_data()
 	_init_player_components_context_data()
 	_pass_player_context_module_to_components()
-	_init_player_init_context_data()
-	
-	_update_player_physics_context_data()
 
-func _ready():
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
-	_build_player_context_data()
-	
+func _connect_state_machine_signal() -> void:
 	current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
 	
 	_player_context_module.components.state_machine.state_changed.connect(_on_state_changed)
 
-@onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
-func _process(delta: float) -> void:
-	_player_context_module.components.camera_controller.process(delta)
-	
-	$Debug.text = str(
+func _debug_text() -> String:
+	return str(
 		"FPS: ", Engine.get_frames_per_second(), "\n",
 		"Velocity: ", round(velocity), "\n",
 		"Movement Speed: ", snappedf(_player_context_module.components.movement_controller.movement_speed, 0.1), "\n",
@@ -221,17 +192,21 @@ func _process(delta: float) -> void:
 		"Coyote Time Left: ", snappedf(_player_context_module.components.state_machine._coyote_time_left, 0.01)
 	)
 
-func _physics_process(delta: float) -> void:
-	_update_player_physics_context_data()
+func _ready():
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
+	_build_player_context_data()
+	_connect_state_machine_signal()
+
+@onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
+func _process(_delta: float) -> void:
+	$Debug.text = _debug_text()
+
+func _physics_process(delta: float) -> void:
 	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
 	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
 
-	_player_context_module.components.state_machine.physics_process(delta) 
-
 	current_movement_logic.call()
-	
-	_player_context_module.components.movement_controller.physics_process(delta)
 	
 	# TODO (MOVEMENT CONTROLLER): Move to movement_controller component
 	var floor_speed: float = _player_context_module.components.movement_controller.crouch_speed + _player_context_module.components.movement_controller.walk_speed + _player_context_module.components.movement_controller.run_speed

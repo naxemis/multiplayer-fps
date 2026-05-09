@@ -7,13 +7,4 @@ class NodeRefs extends RefCounted:
 class Components extends RefCounted:
 	pass
 
-class Init extends RefCounted:
-	pass
-
-class Process extends RefCounted:
-	pass
-
-class Physics extends RefCounted:
-	pass
-
 @abstract func _init() -> void
