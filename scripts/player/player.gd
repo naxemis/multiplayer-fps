@@ -34,9 +34,9 @@ var amount_above_crouch_clamp: float
 func collision_shape_animations(delta) -> void:
 	collision_blend_amount = clampf(collision_blend_amount, 0.0, slide_blend_amount)
 	
-	if _player_context_module.components.state_machine._current_state == _player_context_module.components.state_machine.MovementStates.CROUCH:
+	if _state_machine._current_state == _state_machine.MovementStates.CROUCH:
 		collision_blend_amount = lerpf(collision_blend_amount, crouch_blend_amount, crouch_animation_speed * delta)
-	elif _player_context_module.components.state_machine._current_state == _player_context_module.components.state_machine.MovementStates.SLIDE:
+	elif _state_machine._current_state == _state_machine.MovementStates.SLIDE:
 		collision_blend_amount = lerpf(collision_blend_amount, slide_blend_amount, slide_animation_speed * delta)
 	else:
 		if collision_blend_amount <= crouch_blend_amount:
@@ -51,13 +51,6 @@ func collision_shape_animations(delta) -> void:
 @export_category("Movement Stamina")
 @export var max_stamina: float = 100.0
 @onready var stamina: float = max_stamina
-
-var stamina_recovery := {
-	_player_context_module.components.state_machine.MovementStates.IDLE: idle_stamina_recovery,
-	_player_context_module.components.state_machine.MovementStates.CROUCH: crouch_stamina_recovery,
-	_player_context_module.components.state_machine.MovementStates.WALK: walk_stamina_recovery,
-	_player_context_module.components.state_machine.MovementStates.RUN: run_stamina_recovery,
-}
 
 @export var idle_stamina_recovery: float = 25.0
 @export var crouch_stamina_recovery: float = 17.5
@@ -78,16 +71,16 @@ func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
 func calculate_stamina(delta) -> void:
 	stamina = clampf(stamina, 0.0, max_stamina)
 	
-	match _player_context_module.components.state_machine._current_state:
-		_player_context_module.components.state_machine.MovementStates.IDLE:
+	match _state_machine._current_state:
+		_state_machine.MovementStates.IDLE:
 			stamina += idle_stamina_recovery * delta
-		_player_context_module.components.state_machine.MovementStates.CROUCH:
+		_state_machine.MovementStates.CROUCH:
 			stamina += crouch_stamina_recovery * delta
-		_player_context_module.components.state_machine.MovementStates.WALK:
+		_state_machine.MovementStates.WALK:
 			stamina += walk_stamina_recovery * delta
-		_player_context_module.components.state_machine.MovementStates.RUN:
+		_state_machine.MovementStates.RUN:
 			stamina += run_stamina_recovery * delta
-		_player_context_module.components.state_machine.MovementStates.SLIDE:
+		_state_machine.MovementStates.SLIDE:
 			stamina -= slide_stamina_drain * delta
 	
 	if !is_on_floor():
@@ -105,25 +98,28 @@ func calculate_stamina(delta) -> void:
 var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
-	var states := _player_context_module.components.state_machine.MovementStates
-	
+	var states := _state_machine.MovementStates
+
 	print(new_state)
-	
+
 	match new_state:
-		states.IDLE, states.CROUCH: current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
-		states.WALK: current_movement_logic = _player_context_module.components.movement_controller._walk
-		states.RUN: current_movement_logic = _player_context_module.components.movement_controller._run
-		states.SLIDE: current_movement_logic = _player_context_module.components.movement_controller._slide
-		states.JUMP: _player_context_module.components.movement_controller.jump()
-		states.DOUBLE_JUMP: _player_context_module.components.movement_controller.double_jump()
-		states.WALL_JUMP: _player_context_module.components.movement_controller.wall_jump()
+		states.IDLE, states.CROUCH: current_movement_logic = _movement_controller._crouch_or_other
+		states.WALK: current_movement_logic = _movement_controller._walk
+		states.RUN: current_movement_logic = _movement_controller._run
+		states.SLIDE: current_movement_logic = _movement_controller._slide
+		states.JUMP: _movement_controller.jump()
+		states.DOUBLE_JUMP: _movement_controller.double_jump()
+		states.WALL_JUMP: _movement_controller.wall_jump()
 
 var _player_context_module: PlayerContextModule = PlayerContextModule.new()
+var _state_machine: StateMachine
+var _movement_controller: MovementController
+var _camera_controller: CameraController
 
 # TODO: Move context initialization to a function in PlayerContextModule and then call it from corresponding engine callbacks in Player script
 
 func _unhandled_input(event: InputEvent) -> void:
-	_player_context_module.components.camera_controller.handle_input(event)
+	_camera_controller.handle_input(event)
 
 var _player_context_data: PlayerContextData
 
@@ -150,6 +146,10 @@ func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
 
+	_camera_controller = _player_context_module.components.camera_controller
+	_state_machine = _player_context_module.components.state_machine
+	_movement_controller = _player_context_module.components.movement_controller
+
 func _build_player_context_data() -> void:
 	_create_context_data()
 
@@ -158,25 +158,25 @@ func _build_player_context_data() -> void:
 	_pass_player_context_module_to_components()
 
 func _connect_state_machine_signal() -> void:
-	current_movement_logic = _player_context_module.components.movement_controller._crouch_or_other
-	
-	_player_context_module.components.state_machine.state_changed.connect(_on_state_changed)
+	current_movement_logic = _movement_controller._crouch_or_other
+
+	_state_machine.state_changed.connect(_on_state_changed)
 
 func _debug_text() -> String:
 	return str(
 		"FPS: ", Engine.get_frames_per_second(), "\n",
 		"Velocity: ", round(velocity), "\n",
-		"Movement Speed: ", snappedf(_player_context_module.components.movement_controller.movement_speed, 0.1), "\n",
-		"Walk Speed: ", snappedf(_player_context_module.components.movement_controller.walk_speed, 0.01), "\n",
-		"Run Speed: ", snappedf(_player_context_module.components.movement_controller.run_speed, 0.01), "\n",
-		"Slide Speed: ", snappedf(_player_context_module.components.movement_controller.slide_speed, 0.01), "\n",
-		"Movement State: ", movement_states_array[_player_context_module.components.state_machine._current_state], "\n",
-		"Velocity Timeout Time Left: ", _player_context_module.components.movement_controller._velocity_timeout_left, "\n",
+		"Movement Speed: ", snappedf(_movement_controller.movement_speed, 0.1), "\n",
+		"Walk Speed: ", snappedf(_movement_controller.walk_speed, 0.01), "\n",
+		"Run Speed: ", snappedf(_movement_controller.run_speed, 0.01), "\n",
+		"Slide Speed: ", snappedf(_movement_controller.slide_speed, 0.01), "\n",
+		"Movement State: ", movement_states_array[_state_machine._current_state], "\n",
+		"Velocity Timeout Time Left: ", _movement_controller._velocity_timeout_left, "\n",
 		"Stamina: ", snappedf(stamina, 0.1), "\n",
 		"On Floor: ", is_on_floor(), "\n",
 		"On Wall: ", is_on_wall(), "\n",
 		"Camera FOV: ", snappedf(%Camera.fov, 0.1), "\n",
-		"Coyote Time Left: ", snappedf(_player_context_module.components.state_machine._coyote_time_left, 0.01)
+		"Coyote Time Left: ", snappedf(_state_machine._coyote_time_left, 0.01)
 	)
 
 func _ready():
@@ -195,5 +195,5 @@ func _physics_process(delta: float) -> void:
 
 	current_movement_logic.call()
 
-	_player_context_module.components.movement_controller.compute_movement_velocity()
+	_movement_controller.compute_movement_velocity()
 	

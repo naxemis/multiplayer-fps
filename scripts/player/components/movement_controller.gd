@@ -1,8 +1,6 @@
 class_name MovementController
 extends Node
 
-# TODO (MOVEMENT VELOCITY): Extract velocity calculation logic from player.gd script to this component
-
 # Signals
 
 # Enums and constants
@@ -59,6 +57,8 @@ var velocity_timeout: bool = false # true - player is walking into wall for too 
 
 # Private vars (_)
 var _player_context_module: PlayerContextModule
+var _player: Player
+var _state_machine: StateMachine
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
@@ -78,6 +78,8 @@ func _physics_process(delta: float) -> void:
 # Public methods (component APIs)
 func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_player_context_module = player_context
+	_player = player_context.node_refs.player
+	_state_machine = player_context.components.state_machine
 
 func get_movement_directions() -> Vector3:
 	return _movement_directions
@@ -96,10 +98,10 @@ func _update_movement_speed(delta: float) -> void:
 func jump() -> void:
 	_movement_directions.y = 0
 	_movement_directions.y += jump_velocity
-		
-	_player_context_module.components.state_machine.consume_coyote()
-		
-	_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.node_refs.player.jump_stamina_drain)
+
+	_state_machine.consume_coyote()
+
+	_player.one_time_stamina_drain(_player.jump_stamina_drain)
 
 func double_jump() -> void:
 	if get_movement_directions().y < 0:
@@ -107,12 +109,12 @@ func double_jump() -> void:
 
 	_movement_directions.y += jump_velocity * double_jump_multiplier
 
-	_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.node_refs.player.double_jump_stamina_drain)
+	_player.one_time_stamina_drain(_player.double_jump_stamina_drain)
 
 	_reset_wall_jumping_directions()
 
 func wall_jump() -> void:
-	if _player_context_module.components.state_machine._can_enter_wall_jump():
+	if _state_machine._can_enter_wall_jump():
 		_reset_wall_jumping_directions()
 
 		# calculates and clamps vertical jump force after wall jumping
@@ -123,36 +125,33 @@ func wall_jump() -> void:
 		_movement_directions.y = 0.0
 		_movement_directions.y += vertical_jump
 
-		var player_transform: Transform3D = _player_context_module.node_refs.player.transform
+		var player_transform: Transform3D = _player.transform
 		# direction of wall jump
 		if !Input.is_action_pressed("change_wall_jump_directions"): # player wants to jump in same direction he jumped from
-			_wall_jump_directions = -_player_context_module.node_refs.player.get_wall_normal().direction_to(-player_transform.basis.z * _movement_directions)
+			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * _movement_directions)
 		else: # player wants to "bounce" from a wall
-			_wall_jump_directions = -_player_context_module.node_refs.player.get_wall_normal().direction_to(-player_transform.basis.z * -_movement_directions)
+			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * -_movement_directions)
 
-		_player_context_module.node_refs.player.one_time_stamina_drain(_player_context_module.node_refs.player.wall_jump_stamina_drain)
+		_player.one_time_stamina_drain(_player.wall_jump_stamina_drain)
 
-	if _player_context_module.node_refs.player.is_on_floor():
+	if _player.is_on_floor():
 		_reset_wall_jumping_directions()
 
 func compute_movement_velocity() -> void:
-	var player: Player = _player_context_module.node_refs.player
-	var state_machine: StateMachine = _player_context_module.components.state_machine
+	var transform_x: Vector3 = _player.global_transform.basis.x * _inertia_movement_directions.x
+	var transform_y: Vector3 = _player.global_transform.basis.y * _movement_directions.y
+	var transform_z: Vector3 = _player.global_transform.basis.z * _inertia_movement_directions.z
 
-	var transform_x: Vector3 = player.global_transform.basis.x * _inertia_movement_directions.x
-	var transform_y: Vector3 = player.global_transform.basis.y * _movement_directions.y
-	var transform_z: Vector3 = player.global_transform.basis.z * _inertia_movement_directions.z
-
-	if state_machine._current_state != state_machine.MovementStates.WALL_JUMP:
-		player.velocity = (transform_x + transform_z) * movement_speed + transform_y
+	if _state_machine._current_state != _state_machine.MovementStates.WALL_JUMP:
+		_player.velocity = (transform_x + transform_z) * movement_speed + transform_y
 	else:
-		player.velocity = _wall_jump_directions * movement_speed + transform_y
+		_player.velocity = _wall_jump_directions * movement_speed + transform_y
 
-	player.move_and_slide()
+	_player.move_and_slide()
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
-	return _player_context_module.node_refs.player.is_on_floor() and _player_context_module.node_refs.player.is_on_wall() and _player_context_module.node_refs.player.velocity.z == 0 and _player_context_module.node_refs.player.velocity.x == 0
+	return _player.is_on_floor() and _player.is_on_wall() and _player.velocity.z == 0 and _player.velocity.x == 0
 
 func _get_velocity_timeout(delta) -> void:
 	_velocity_timeout_left = clampf(_velocity_timeout_left, 0.0, max_timeout_duration)
@@ -196,7 +195,7 @@ func _run() -> void:
 func _slide() -> void:
 	var delta: float = get_physics_process_delta_time()
 
-	var calculating_slope: Vector3 = _player_context_module.node_refs.player.get_floor_normal() * -_player_context_module.node_refs.player.transform.basis.z
+	var calculating_slope: Vector3 = _player.get_floor_normal() * -_player.transform.basis.z
 	var slope_value: float = calculating_slope.z + calculating_slope.x
 	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
 	var slope_interference: float = slope_value * slope_factor
@@ -221,7 +220,7 @@ func _calculate_get_movement_directions() -> void:
 	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
 func _calulcate_movement_inertia(delta) -> void:
-	match _player_context_module.node_refs.player.is_on_floor():
+	match _player.is_on_floor():
 		true: _current_inertia = on_ground_inertia
 		false: _current_inertia = in_air_inertia
 	
@@ -229,7 +228,7 @@ func _calulcate_movement_inertia(delta) -> void:
 	_inertia_movement_directions.z = lerpf(_inertia_movement_directions.z, get_movement_directions().z, _current_inertia * delta)
 
 func _gravity(delta) -> void:
-	if !_player_context_module.node_refs.player.is_on_floor():
+	if !_player.is_on_floor():
 		_movement_directions.y -= gravity_force * delta
 	else:
 		pass
