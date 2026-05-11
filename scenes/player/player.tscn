@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://38fy41t752js" path="res://scripts/player/components/state_machine.gd" id="6_0owmy"]
 [ext_resource type="Script" uid="uid://bh5rnhj8l3hv0" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
 [ext_resource type="Script" uid="uid://6e8csjij1x8o" path="res://scripts/player/components/stamina_manager.gd" id="7_smgr1"]
+[ext_resource type="Script" uid="uid://cs3w8xy2u1pki" path="res://scripts/player/components/collision_animator.gd" id="8_qek5x"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -331,7 +332,6 @@ animation = &"Standing"
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_g54bb"]
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_th03g"]
-graph_offset = Vector2(-448, 149)
 "nodes/One-Third Lower/node" = SubResource("AnimationNodeAnimation_s1vnq")
 "nodes/One-Third Lower/position" = Vector2(-220, 280)
 nodes/Standing/node = SubResource("AnimationNodeAnimation_b7wn7")
@@ -364,10 +364,6 @@ height = 5
 collision_layer = 2
 floor_max_angle = 1.39626
 script = ExtResource("1_lvxji")
-crouch_animation_speed = null
-slide_animation_speed = null
-crouch_blend_amount = null
-slide_blend_amount = null
 
 [node name="Body" type="MeshInstance3D" parent="." unique_id=1685405249]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
@@ -437,3 +433,7 @@ double_jump_stamina_drain = null
 wall_jump_stamina_drain = null
 stamina_safe_zone = null
 metadata/_custom_type_script = "uid://6e8csjij1x8o"
+
+[node name="CollisionAnimator" type="Node" parent="." unique_id=289732713]
+script = ExtResource("8_qek5x")
+metadata/_custom_type_script = "uid://cs3w8xy2u1pki"
