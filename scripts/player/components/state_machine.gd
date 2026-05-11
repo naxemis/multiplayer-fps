@@ -113,6 +113,8 @@ func _can_enter_crouch() -> bool:
 
 	return (input_crouch or stuck_under_ceiling) and _is_on_ground()
 
+
+# TODO (MAX SLIDE SPEED PER SLIDE): Add max slide speed amount that player can get from a single slide. After some time after achieving max speed the speed should decrease,
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
 
