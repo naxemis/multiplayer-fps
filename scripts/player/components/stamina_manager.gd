@@ -48,7 +48,7 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_state_machine = player_context.components.state_machine
 	_stamina_bar = player_context.node_refs.stamina_bar
 
-    state_machine.state_changed.connect(_on_state_changed)
+	_state_machine.state_changed.connect(_on_state_changed)
 	_current_recovery_rate = _rate_for_state(_state_machine._current_state)
 
 func drain_once(value_of_stamina_drain: float) -> void:
@@ -62,6 +62,9 @@ func has_stamina(minimum: float = 0.0) -> bool:
 
 func can_perform(cost: float) -> bool:
 	return stamina > stamina_safe_zone and stamina - cost > 0
+
+func reset() -> void:
+	stamina = max_stamina
 
 # Private methods (_)
 func _on_state_changed(new_state: int) -> void:
