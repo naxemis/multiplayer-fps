@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
 [ext_resource type="Script" uid="uid://38fy41t752js" path="res://scripts/player/components/state_machine.gd" id="6_0owmy"]
 [ext_resource type="Script" uid="uid://bh5rnhj8l3hv0" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
+[ext_resource type="Script" uid="uid://6e8csjij1x8o" path="res://scripts/player/components/stamina_manager.gd" id="7_smgr1"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -416,3 +417,7 @@ metadata/_custom_type_script = "uid://38fy41t752js"
 [node name="MovementController" type="Node" parent="." unique_id=1722138228]
 script = ExtResource("6_75vfm")
 metadata/_custom_type_script = "uid://bh5rnhj8l3hv0"
+
+[node name="StaminaManager" type="Node" parent="." unique_id=2104873591]
+script = ExtResource("7_smgr1")
+metadata/_custom_type_script = "uid://6e8csjij1x8o"
