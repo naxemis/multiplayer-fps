@@ -47,8 +47,17 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_state_machine = player_context.components.state_machine
 	_stamina_bar = player_context.node_refs.stamina_bar
 
-func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
+func drain_once(value_of_stamina_drain: float) -> void:
 	stamina -= value_of_stamina_drain
+
+func is_above_safe_zone() -> bool:
+	return stamina > stamina_safe_zone
+
+func has_stamina(minimum: float = 0.0) -> bool:
+	return stamina > minimum
+
+func can_perform(cost: float) -> bool:
+	return stamina > stamina_safe_zone and stamina - cost > 0
 
 # Private methods (_)
 func _calculate_stamina(delta) -> void:

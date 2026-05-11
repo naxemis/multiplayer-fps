@@ -110,7 +110,7 @@ func jump() -> void:
 
 	_state_machine.consume_coyote()
 
-	_stamina_manager.one_time_stamina_drain(_stamina_manager.jump_stamina_drain)
+	_stamina_manager.drain_once(_stamina_manager.jump_stamina_drain)
 
 func double_jump() -> void:
 	if get_movement_directions().y < 0:
@@ -118,7 +118,7 @@ func double_jump() -> void:
 
 	_movement_directions.y += jump_velocity * double_jump_multiplier
 
-	_stamina_manager.one_time_stamina_drain(_stamina_manager.double_jump_stamina_drain)
+	_stamina_manager.drain_once(_stamina_manager.double_jump_stamina_drain)
 
 	_reset_wall_jumping_directions()
 
@@ -141,7 +141,7 @@ func wall_jump() -> void:
 		else: # player wants to "bounce" from a wall
 			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * -_movement_directions)
 
-		_stamina_manager.one_time_stamina_drain(_stamina_manager.wall_jump_stamina_drain)
+		_stamina_manager.drain_once(_stamina_manager.wall_jump_stamina_drain)
 
 	if _player.is_on_floor():
 		_reset_wall_jumping_directions()
