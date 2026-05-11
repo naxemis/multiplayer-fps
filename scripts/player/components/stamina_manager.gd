@@ -31,6 +31,7 @@ var _player_context_module: PlayerContextModule
 var _player: Player
 var _state_machine: StateMachine
 var _stamina_bar: TextureProgressBar
+var _current_recovery_rate: float = 0.0
 
 # @onready vars
 
@@ -47,6 +48,9 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_state_machine = player_context.components.state_machine
 	_stamina_bar = player_context.node_refs.stamina_bar
 
+    state_machine.state_changed.connect(_on_state_changed)
+	_current_recovery_rate = _rate_for_state(_state_machine._current_state)
+
 func drain_once(value_of_stamina_drain: float) -> void:
 	stamina -= value_of_stamina_drain
 
@@ -60,23 +64,25 @@ func can_perform(cost: float) -> bool:
 	return stamina > stamina_safe_zone and stamina - cost > 0
 
 # Private methods (_)
-func _calculate_stamina(delta) -> void:
-	stamina = clampf(stamina, 0.0, max_stamina)
-	
-	match _state_machine._current_state:
-		_state_machine.MovementStates.IDLE:
-			stamina += idle_stamina_recovery * delta
-		_state_machine.MovementStates.CROUCH:
-			stamina += crouch_stamina_recovery * delta
-		_state_machine.MovementStates.WALK:
-			stamina += walk_stamina_recovery * delta
-		_state_machine.MovementStates.RUN:
-			stamina += run_stamina_recovery * delta
-		_state_machine.MovementStates.SLIDE:
-			stamina -= slide_stamina_drain * delta
-	
-	if !_player.is_on_floor():
-		stamina += in_air_stamina_recovery * delta
+func _on_state_changed(new_state: int) -> void:
+	_current_recovery_rate = _rate_for_state(new_state)
+
+func _rate_for_state(state: int) -> float:
+	match state:
+		_state_machine.MovementStates.IDLE: return idle_stamina_recovery
+		_state_machine.MovementStates.CROUCH: return crouch_stamina_recovery
+		_state_machine.MovementStates.WALK: return walk_stamina_recovery
+		_state_machine.MovementStates.RUN: return run_stamina_recovery
+		_state_machine.MovementStates.SLIDE: return -slide_stamina_drain
+		_state_machine.MovementStates.JUMP, \
+		_state_machine.MovementStates.DOUBLE_JUMP, \
+		_state_machine.MovementStates.WALL_JUMP, \
+		_state_machine.MovementStates.FALL:
+			return in_air_stamina_recovery
+	return 0.0
+
+func _calculate_stamina(delta: float) -> void:
+	stamina = clampf(stamina + _current_recovery_rate * delta, 0.0, max_stamina)
 
 	if stamina <= stamina_safe_zone:
 		_stamina_bar.tint_progress = Color(188, 0, 0)
