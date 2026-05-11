@@ -1,5 +1,5 @@
 class_name CollisionAnimator
-extends Node
+extends Component
 
 # Signals
 
@@ -31,9 +31,9 @@ func _process(delta: float) -> void:
 	_collision_shape_animations(delta)
 
 # Public methods (component APIs)
-func pass_player_context_module(player_context: PlayerContextModule) -> void:
-	_player_context_module = player_context
-	_state_machine = player_context.components.state_machine
+func pass_context_module(context: ContextModule) -> void:
+	_player_context_module = context
+	_state_machine = context.components.state_machine
 	_animation_tree = _player_context_module.node_refs.collision_animation_tree
 
 	_state_machine.state_changed.connect(_on_state_changed)

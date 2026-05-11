@@ -1,5 +1,5 @@
 class_name StaminaManager
-extends Node
+extends Component
 
 # Signals
 
@@ -42,11 +42,11 @@ func _physics_process(delta: float) -> void:
 	_calculate_stamina(delta)
 
 # Public methods (component APIs)
-func pass_player_context_module(player_context: PlayerContextModule) -> void:
-	_player_context_module = player_context
-	_player = player_context.node_refs.player
-	_state_machine = player_context.components.state_machine
-	_stamina_bar = player_context.node_refs.stamina_bar
+func pass_context_module(context: ContextModule) -> void:
+	_player_context_module = context
+	_player = context.node_refs.player
+	_state_machine = context.components.state_machine
+	_stamina_bar = context.node_refs.stamina_bar
 
 	_state_machine.state_changed.connect(_on_state_changed)
 	_current_recovery_rate = _rate_for_state(_state_machine._current_state)

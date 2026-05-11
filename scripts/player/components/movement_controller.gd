@@ -3,7 +3,7 @@
 # Contact: contact@naxemis.dev
 
 class_name MovementController
-extends Node
+extends Component
 
 # Signals
 
@@ -84,11 +84,11 @@ func _physics_process(delta: float) -> void:
 	_update_movement_speed(delta)
 
 # Public methods (component APIs)
-func pass_player_context_module(player_context: PlayerContextModule) -> void:
-	_player_context_module = player_context
-	_player = player_context.node_refs.player
-	_state_machine = player_context.components.state_machine
-	_stamina_manager = player_context.components.stamina_manager
+func pass_context_module(context: ContextModule) -> void:
+	_player_context_module = context
+	_player = context.node_refs.player
+	_state_machine = context.components.state_machine
+	_stamina_manager = context.components.stamina_manager
 
 func get_movement_directions() -> Vector3:
 	return _movement_directions

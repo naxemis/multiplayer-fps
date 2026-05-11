@@ -19,8 +19,6 @@ extends CharacterBody3D
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-# TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for components that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
-
 # TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
 var current_movement_logic: Callable
@@ -71,12 +69,12 @@ func _init_player_components_context_data() -> void:
 
 	_player_context_module.init_components_data(_player_context_data.components)
 
-func _pass_player_context_module_to_components() -> void:
-	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
-	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
-	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
-	_player_context_module.components.stamina_manager.pass_player_context_module(_player_context_module)
-	_player_context_module.components.collision_animator.pass_player_context_module(_player_context_module)
+func _pass_context_module_to_components() -> void:
+	_player_context_module.components.camera_controller.pass_context_module(_player_context_module)
+	_player_context_module.components.state_machine.pass_context_module(_player_context_module)
+	_player_context_module.components.movement_controller.pass_context_module(_player_context_module)
+	_player_context_module.components.stamina_manager.pass_context_module(_player_context_module)
+	_player_context_module.components.collision_animator.pass_context_module(_player_context_module)
 
 	_camera_controller = _player_context_module.components.camera_controller
 	_state_machine = _player_context_module.components.state_machine
@@ -88,7 +86,7 @@ func _build_player_context_data() -> void:
 	_create_context_data()
 	_init_player_node_refs_context_data()
 	_init_player_components_context_data()
-	_pass_player_context_module_to_components()
+	_pass_context_module_to_components()
 
 func _connect_state_machine_signal() -> void:
 	current_movement_logic = _movement_controller._crouch_or_other

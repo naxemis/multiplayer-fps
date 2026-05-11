@@ -3,7 +3,7 @@
 # Contact: contact@naxemis.dev
 
 class_name CameraController
-extends Node
+extends Component
 
 # Signals
 signal freelook_started
@@ -72,12 +72,12 @@ func handle_input(event: InputEvent) -> void:
 	_calculate_base_head_rotation(event)
 	_calculate_free_look_rotation(event)
 
-func pass_player_context_module(player_context: PlayerContextModule) -> void:
-	_player_context_module = player_context
-	_player = player_context.node_refs.player
-	_head = player_context.node_refs.head
-	_camera = player_context.node_refs.camera
-	_movement_controller = player_context.components.movement_controller
+func pass_context_module(context: ContextModule) -> void:
+	_player_context_module = context
+	_player = context.node_refs.player
+	_head = context.node_refs.head
+	_camera = context.node_refs.camera
+	_movement_controller = context.components.movement_controller
 
 func get_head_rotation() -> Vector2:
 	return _head_rotation

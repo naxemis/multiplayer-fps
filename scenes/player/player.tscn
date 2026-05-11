@@ -1,13 +1,13 @@
 [gd_scene format=3 uid="uid://l2jckejdxgx6"]
 
 [ext_resource type="Shader" uid="uid://d1ma8mcn6kd4k" path="res://shaders/shared/Toon.gdshader" id="1_5v8pb"]
-[ext_resource type="Script" uid="uid://efyrk30thy3j" path="res://scripts/player/player.gd" id="1_lvxji"]
+[ext_resource type="Script" uid="uid://beys6lhtu1p03" path="res://scripts/player/player.gd" id="1_lvxji"]
 [ext_resource type="Shader" uid="uid://66gadw2ih8wv" path="res://shaders/shared/Outline.gdshader" id="1_myayq"]
-[ext_resource type="Script" uid="uid://bnfl516agpv3d" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
-[ext_resource type="Script" uid="uid://38fy41t752js" path="res://scripts/player/components/state_machine.gd" id="6_0owmy"]
-[ext_resource type="Script" uid="uid://bh5rnhj8l3hv0" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
-[ext_resource type="Script" uid="uid://6e8csjij1x8o" path="res://scripts/player/components/stamina_manager.gd" id="7_smgr1"]
-[ext_resource type="Script" uid="uid://cs3w8xy2u1pki" path="res://scripts/player/components/collision_animator.gd" id="8_qek5x"]
+[ext_resource type="Script" uid="uid://2n1q0bqwrgyu" path="res://scripts/player/components/camera_controller.gd" id="3_gmlin"]
+[ext_resource type="Script" uid="uid://buofhi0ofq6k" path="res://scripts/player/components/state_machine.gd" id="6_0owmy"]
+[ext_resource type="Script" uid="uid://cfnqx8vyrci5v" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
+[ext_resource type="Script" uid="uid://dbjtuyhw4gm0a" path="res://scripts/player/components/stamina_manager.gd" id="7_smgr1"]
+[ext_resource type="Script" uid="uid://2la613tmdiom" path="res://scripts/player/components/collision_animator.gd" id="8_qek5x"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -408,16 +408,45 @@ texture_progress = SubResource("GradientTexture2D_vrsjq")
 
 [node name="CameraController" type="Node" parent="." unique_id=1930370485]
 script = ExtResource("3_gmlin")
-metadata/_custom_type_script = "uid://bnfl516agpv3d"
+mouse_sensitivity = null
+head_rotation_limit = null
+free_look_rotation_limit = null
+free_look_sensitivity_multiplier = null
+free_look_return_speed = null
+default_camera_fov = null
+fov_speed_buff_factor = null
+fov_interpolation_speed = null
 
 [node name="StateMachine" type="Node" parent="." unique_id=1583199222]
 script = ExtResource("6_0owmy")
 default_coyote_time = null
-metadata/_custom_type_script = "uid://38fy41t752js"
 
 [node name="MovementController" type="Node" parent="." unique_id=1722138228]
 script = ExtResource("6_75vfm")
-metadata/_custom_type_script = "uid://bh5rnhj8l3hv0"
+max_timeout_duration = null
+crouch_speed = null
+walk_speed = null
+max_run_speed = null
+run_speed_increase = null
+run_walk_decrease = null
+run_crouch_decrease = null
+max_slide_speed = null
+slide_buff_multiplier = null
+slope_uphill_brake_factor = null
+slope_downhill_boost_factor = null
+slide_speed_run_decrease = null
+slide_speed_walk_decrease = null
+slide_speed_crouch_decrease = null
+speed_inertia = null
+on_ground_inertia = null
+in_air_inertia = null
+gravity_force = null
+jump_velocity = null
+double_jump_multiplier = null
+can_double_jump_after_wall_jump = null
+vertical_jump_multiplier = null
+min_vertical_jump = null
+max_vertical_jump = null
 
 [node name="StaminaManager" type="Node" parent="." unique_id=2104873591]
 script = ExtResource("7_smgr1")
@@ -432,8 +461,10 @@ jump_stamina_drain = null
 double_jump_stamina_drain = null
 wall_jump_stamina_drain = null
 stamina_safe_zone = null
-metadata/_custom_type_script = "uid://6e8csjij1x8o"
 
 [node name="CollisionAnimator" type="Node" parent="." unique_id=289732713]
 script = ExtResource("8_qek5x")
-metadata/_custom_type_script = "uid://cs3w8xy2u1pki"
+crouch_animation_speed = null
+slide_animation_speed = null
+crouch_blend_amount = null
+slide_blend_amount = null

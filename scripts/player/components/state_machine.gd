@@ -3,7 +3,7 @@
 # Contact: contact@naxemis.dev
 
 class_name StateMachine
-extends Node
+extends Component
 
 # Signals
 signal state_changed(new_state: int)
@@ -42,11 +42,11 @@ func _physics_process(delta: float) -> void:
 	_current_state = _update_state()
 
 # Public methods
-func pass_player_context_module(player_context: PlayerContextModule) -> void:
-	_player_context_module = player_context
-	_player = player_context.node_refs.player
-	_movement_controller = player_context.components.movement_controller
-	_stamina_manager = player_context.components.stamina_manager
+func pass_context_module(context: ContextModule) -> void:
+	_player_context_module = context
+	_player = context.node_refs.player
+	_movement_controller = context.components.movement_controller
+	_stamina_manager = context.components.stamina_manager
 
 func consume_coyote() -> void:
 	_coyote_time_left = 0
