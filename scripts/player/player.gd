@@ -23,38 +23,10 @@ extends CharacterBody3D
 
 # TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
 
-#region Collision Shape Animations
-@export_category("Collision Shape Animations")
-var collision_blend_amount: float = 0.0
-
-@export var crouch_animation_speed: float = 7.5
-@export var slide_animation_speed: float = 10.0
-
-@export var crouch_blend_amount: float = 1.0
-@export var slide_blend_amount: float = 2.0
-var amount_above_crouch_clamp: float
-func collision_shape_animations(delta) -> void:
-	collision_blend_amount = clampf(collision_blend_amount, 0.0, slide_blend_amount)
-	
-	if _state_machine._current_state == _state_machine.MovementStates.CROUCH:
-		collision_blend_amount = lerpf(collision_blend_amount, crouch_blend_amount, crouch_animation_speed * delta)
-	elif _state_machine._current_state == _state_machine.MovementStates.SLIDE:
-		collision_blend_amount = lerpf(collision_blend_amount, slide_blend_amount, slide_animation_speed * delta)
-	else:
-		if collision_blend_amount <= crouch_blend_amount:
-			collision_blend_amount = lerpf(collision_blend_amount, 0.0, crouch_animation_speed * delta)
-		elif collision_blend_amount > crouch_blend_amount:
-			collision_blend_amount = lerpf(collision_blend_amount, 0.0, slide_animation_speed * delta)
-	
-	$CollisionAnimationTree["parameters/State Blend/blend_amount"] = collision_blend_amount
-#endregion
-
 var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
 	var states := _state_machine.MovementStates
-
-	print(new_state)
 
 	match new_state:
 		states.IDLE, states.CROUCH: current_movement_logic = _movement_controller._crouch_or_other
@@ -70,6 +42,7 @@ var _state_machine: StateMachine
 var _movement_controller: MovementController
 var _camera_controller: CameraController
 var _stamina_manager: StaminaManager
+var _collision_animator: CollisionAnimator
 
 func _unhandled_input(event: InputEvent) -> void:
 	_camera_controller.handle_input(event)
@@ -85,6 +58,7 @@ func _init_player_node_refs_context_data() -> void:
 	_player_context_data.node_refs.head = $Head
 	_player_context_data.node_refs.camera = %Camera
 	_player_context_data.node_refs.stamina_bar = $StaminaBar
+	_player_context_data.node_refs.collision_animation_tree = $CollisionAnimationTree
 	
 	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
 
@@ -93,6 +67,7 @@ func _init_player_components_context_data() -> void:
 	_player_context_data.components.state_machine = $StateMachine
 	_player_context_data.components.movement_controller = $MovementController
 	_player_context_data.components.stamina_manager = $StaminaManager
+	_player_context_data.components.collision_animator = $CollisionAnimator
 
 	_player_context_module.init_components_data(_player_context_data.components)
 
@@ -101,11 +76,13 @@ func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
 	_player_context_module.components.stamina_manager.pass_player_context_module(_player_context_module)
+	_player_context_module.components.collision_animator.pass_player_context_module(_player_context_module)
 
 	_camera_controller = _player_context_module.components.camera_controller
 	_state_machine = _player_context_module.components.state_machine
 	_movement_controller = _player_context_module.components.movement_controller
 	_stamina_manager = _player_context_module.components.stamina_manager
+	_collision_animator = _player_context_module.components.collision_animator
 
 func _build_player_context_data() -> void:
 	_create_context_data()
@@ -146,8 +123,6 @@ func _process(_delta: float) -> void:
 	$Debug.text = _debug_text()
 
 func _physics_process(delta: float) -> void:
-	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
-
 	current_movement_logic.call()
 
 	velocity = _movement_controller.compute_movement_velocity()
