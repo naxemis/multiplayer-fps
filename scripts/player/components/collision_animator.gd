@@ -1,3 +1,7 @@
+## Drives the player's collision-shape morph between stand, crouch and slide poses by writing into the [AnimationTree]'s blend parameter each frame.
+##
+## Listens to [signal StateMachine.state_changed] to pick a target blend amount and ease speed; on every [method _process] tick the current blend value lerps toward that target.
+## The state-blend parameter path written is [code]parameters/State Blend/blend_amount[/code], expecting an [AnimationNodeBlendTree] with three poses crossfaded by a scalar.
 class_name CollisionAnimator
 extends Component
 
@@ -7,10 +11,18 @@ extends Component
 
 # @export vars
 @export_category("Collision Shape Animations")
+## Lerp rate (per second) applied while easing toward the crouch blend value.
+## Higher values produce a snappier crouch.
 @export var crouch_animation_speed: float = 7.5
+## Lerp rate (per second) applied while easing toward the slide blend value.
+## Higher values produce a snappier slide.
 @export var slide_animation_speed: float = 10.0
 
+## Target value for the AnimationTree blend parameter while the [enum StateMachine.MovementStates] is [code]CROUCH[/code].
+## Convention: crouch sits at 1.0 on the [0, slide_blend_amount] scale.
 @export var crouch_blend_amount: float = 1.0
+## Target value for the AnimationTree blend parameter while the [enum StateMachine.MovementStates] is [code]SLIDE[/code].
+## Acts as the upper bound of the blend clamp.
 @export var slide_blend_amount: float = 2.0
 
 # Public vars
@@ -31,6 +43,7 @@ func _process(delta: float) -> void:
 	_collision_shape_animations(delta)
 
 # Public methods (component APIs)
+## Caches the [StateMachine] and [AnimationTree] from the context, connects to [signal StateMachine.state_changed], and primes the target from the current state so the shape starts in the correct pose without an initial pop.
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_state_machine = context.components.state_machine

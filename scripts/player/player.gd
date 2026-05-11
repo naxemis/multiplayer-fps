@@ -2,25 +2,29 @@
 # Licensed under the PolyForm Noncommercial License 1.0.
 # Contact: contact@naxemis.dev
 
+## Player root: orchestrates per-tick movement by composing dedicated [Component] subsystems through a [PlayerContextModule].
+##
+## On [method _ready] this node builds a [PlayerContextData] from its scene children (head, camera, stamina bar, animation tree, attached components), hands it to a [PlayerContextModule] and injects that module into every component via [method Component.pass_context_module].
+## The orchestrator itself owns very little state — it routes input to [CameraController], listens for [signal StateMachine.state_changed] to swap [member current_movement_logic], runs the active per-tick movement closure each physics frame, and finally consumes [method MovementController.compute_movement_velocity] to drive [method CharacterBody3D.move_and_slide].
 class_name Player
 extends CharacterBody3D
 
-# TODO (REFACTOR PLAN) [IN PROGRESS]: 
-# TODO: Refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
-# TODO: For example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
-# TODO: Then have the Player script use those components to manage the player's behavior. 
+# TODO (REFACTOR PLAN) [IN PROGRESS]:
+# TODO: Refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script;
+# TODO: For example, create separate scripts for handling movement states, stamina, collision shape animations, etc.
+# TODO: Then have the Player script use those components to manage the player's behavior.
 # TODO: This will make the code more organized, easier to read, and maintainable in the long run.
 #
 # https://github.com/naxemis/multiplayer-fps/issues/1
 
 # TODO (MOVING UP SLOPES BUG):
-# TODO: Movement on slopes is still bugged. Slopes can randomly block players - especially when they are trying to run or slide up them. 
+# TODO: Movement on slopes is still bugged. Slopes can randomly block players - especially when they are trying to run or slide up them.
 # TODO: This is probably because of the way the movement speed is calculated and how it interacts with the slope.
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-# TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
-
+## Per-tick movement-logic closure swapped on state change.
+## Points at one of [method MovementController._walk] / [code]_run[/code] / [code]_slide[/code] / [code]_crouch_or_other[/code] so [method _physics_process] only calls one function regardless of the active state.
 var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
@@ -57,7 +61,7 @@ func _init_player_node_refs_context_data() -> void:
 	_player_context_data.node_refs.camera = %Camera
 	_player_context_data.node_refs.stamina_bar = $StaminaBar
 	_player_context_data.node_refs.collision_animation_tree = $CollisionAnimationTree
-	
+
 	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
 
 func _init_player_components_context_data() -> void:
@@ -116,6 +120,7 @@ func _ready():
 	_build_player_context_data()
 	_connect_state_machine_signal()
 
+## Human-readable labels for [enum StateMachine.MovementStates]; indexed by the enum's integer value when rendering the debug overlay.
 @onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
 func _process(_delta: float) -> void:
 	$Debug.text = _debug_text()
@@ -125,4 +130,3 @@ func _physics_process(delta: float) -> void:
 
 	velocity = _movement_controller.compute_movement_velocity()
 	move_and_slide()
-	

@@ -2,39 +2,62 @@
 # Licensed under the PolyForm Noncommercial License 1.0.
 # Contact: contact@naxemis.dev
 
+## Translates mouse motion into player body yaw, head pitch and free-look offsets, and drives the [Camera3D] FOV based on current movement speed.
+##
+## Input is consumed via [method handle_input], called by [Player] from [method Player._unhandled_input].
+## Per-frame work happens in [method _process]: free-look return-to-center, combined head rotation and FOV interpolation.
+## Designers tune sensitivity and limits via exported degree-valued fields; the controller caches a radians copy of each for the per-frame math.
 class_name CameraController
 extends Component
 
 # Signals
+## Emitted on the frame the [code]free_look[/code] action is pressed.
 signal freelook_started
+## Emitted on the frame the [code]free_look[/code] action is released.
 signal freelook_stopped
 
 # Enums and constants
 
 # @onready vars
 @export_category("Mouse Movement")
+## Look sensitivity in degrees of rotation per pixel of mouse motion.
+## Applied to both body yaw and head pitch (and scaled further during free-look).
+## The setter recomputes the cached radians copy used by per-frame math.
 @export var mouse_sensitivity: float = 0.075:
 	set(value):
 		mouse_sensitivity = value
 		_mouse_sensitivity_rad = deg_to_rad(value)
 
+## Maximum absolute head pitch in degrees (applies symmetrically up/down).
+## Typical range 60-90.
+## The setter recomputes the cached radians copy used by per-frame math.
 @export var head_rotation_limit: float = 90:
 	set(value):
 		head_rotation_limit = value
 		_head_rotation_limit_rad = deg_to_rad(value)
 
 @export_category("Camera Freelook")
+## Maximum free-look offset in degrees as [code]Vector2(pitch, yaw)[/code] relative to the body.
+## Clamps how far the camera can swivel without turning the body.
+## The setter recomputes the cached radians copy used by per-frame math.
 @export var free_look_rotation_limit: Vector2 = Vector2(35.0, 50):
 	set(value):
 		free_look_rotation_limit = value
 		_free_look_rotation_limit_rad = Vector2(deg_to_rad(value.x), deg_to_rad(value.y))
 
+## Multiplier applied to [member mouse_sensitivity] while free-look is held, letting the player whip the view around faster than normal aiming.
 @export var free_look_sensitivity_multiplier: float = 3.0
+## Lerp rate (per second) at which free-look offsets snap back to zero once the [code]free_look[/code] action is released.
+## Higher = snappier return.
 @export var free_look_return_speed: float = 12.5
 
 @export_category("Camera FOV")
+## Base camera field of view in degrees used when the player is stationary (after subtracting the walk/crouch baseline contribution).
 @export var default_camera_fov: float = 59.0
+## Multiplier applied to [member MovementController.movement_speed] when computing the FOV boost.
+## Larger values widen the FOV more aggressively while running/sliding.
 @export var fov_speed_buff_factor: float = 2.5
+## Lerp rate (per second) used to smooth the camera's actual FOV toward the target computed each frame.
 @export var fov_interpolation_speed: float = 2.5
 
 # Public vars
@@ -62,6 +85,7 @@ func _process(delta: float) -> void:
 	_calculate_camera_fov(delta, _movement_controller.movement_speed)
 
 # Public methods (component APIs)
+## Routes a raw [InputEvent] from [method Player._unhandled_input] into the body/head/free-look math and emits [signal freelook_started] / [signal freelook_stopped] on action press/release.
 func handle_input(event: InputEvent) -> void:
 	if event.is_action_pressed("free_look"):
 		emit_signal("freelook_started")
@@ -72,6 +96,8 @@ func handle_input(event: InputEvent) -> void:
 	_calculate_base_head_rotation(event)
 	_calculate_free_look_rotation(event)
 
+## Caches the player, head pivot, camera and [MovementController] off the injected [PlayerContextModule].
+## See [method Component.pass_context_module].
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_player = context.node_refs.player
@@ -79,6 +105,7 @@ func pass_context_module(context: ContextModule) -> void:
 	_camera = context.node_refs.camera
 	_movement_controller = context.components.movement_controller
 
+## Returns the current combined head pitch/yaw in radians applied this frame.
 func get_head_rotation() -> Vector2:
 	return _head_rotation
 
@@ -112,9 +139,9 @@ func _free_look_return(delta) -> void:
 
 func _calculate_head_rotation(base, free_look) -> void:
 	_head_rotation = base + free_look
-	
+
 	_head_rotation.x = clampf(_head_rotation.x, -_head_rotation_limit_rad, _head_rotation_limit_rad)
-	
+
 	_head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:

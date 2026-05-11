@@ -1,6 +1,7 @@
 # Godot 4+ specific ignores
 .godot/
 *.gd.uid
+export_presets.cfg
 
 /android/
 .idea/

@@ -406,65 +406,22 @@ fill_mode = 6
 texture_under = SubResource("GradientTexture2D_k1exq")
 texture_progress = SubResource("GradientTexture2D_vrsjq")
 
-[node name="CameraController" type="Node" parent="." unique_id=1930370485]
+[node name="CameraController" type="Node" parent="." unique_id=2138138862]
 script = ExtResource("3_gmlin")
-mouse_sensitivity = null
-head_rotation_limit = null
-free_look_rotation_limit = null
-free_look_sensitivity_multiplier = null
-free_look_return_speed = null
-default_camera_fov = null
-fov_speed_buff_factor = null
-fov_interpolation_speed = null
+metadata/_custom_type_script = "uid://2n1q0bqwrgyu"
 
-[node name="StateMachine" type="Node" parent="." unique_id=1583199222]
+[node name="StateMachine" type="Node" parent="." unique_id=96921878]
 script = ExtResource("6_0owmy")
-default_coyote_time = null
+metadata/_custom_type_script = "uid://buofhi0ofq6k"
 
-[node name="MovementController" type="Node" parent="." unique_id=1722138228]
+[node name="MovementController" type="Node" parent="." unique_id=1151083325]
 script = ExtResource("6_75vfm")
-max_timeout_duration = null
-crouch_speed = null
-walk_speed = null
-max_run_speed = null
-run_speed_increase = null
-run_walk_decrease = null
-run_crouch_decrease = null
-max_slide_speed = null
-slide_buff_multiplier = null
-slope_uphill_brake_factor = null
-slope_downhill_boost_factor = null
-slide_speed_run_decrease = null
-slide_speed_walk_decrease = null
-slide_speed_crouch_decrease = null
-speed_inertia = null
-on_ground_inertia = null
-in_air_inertia = null
-gravity_force = null
-jump_velocity = null
-double_jump_multiplier = null
-can_double_jump_after_wall_jump = null
-vertical_jump_multiplier = null
-min_vertical_jump = null
-max_vertical_jump = null
+metadata/_custom_type_script = "uid://cfnqx8vyrci5v"
 
-[node name="StaminaManager" type="Node" parent="." unique_id=2104873591]
+[node name="StaminaManager" type="Node" parent="." unique_id=345230134]
 script = ExtResource("7_smgr1")
-max_stamina = null
-idle_stamina_recovery = null
-crouch_stamina_recovery = null
-walk_stamina_recovery = null
-run_stamina_recovery = null
-in_air_stamina_recovery = null
-slide_stamina_drain = null
-jump_stamina_drain = null
-double_jump_stamina_drain = null
-wall_jump_stamina_drain = null
-stamina_safe_zone = null
+metadata/_custom_type_script = "uid://dbjtuyhw4gm0a"
 
-[node name="CollisionAnimator" type="Node" parent="." unique_id=289732713]
+[node name="CollisionAnimator" type="Node" parent="." unique_id=517419070]
 script = ExtResource("8_qek5x")
-crouch_animation_speed = null
-slide_animation_speed = null
-crouch_blend_amount = null
-slide_blend_amount = null
+metadata/_custom_type_script = "uid://2la613tmdiom"

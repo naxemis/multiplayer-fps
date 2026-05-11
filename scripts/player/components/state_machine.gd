@@ -2,17 +2,35 @@
 # Licensed under the PolyForm Noncommercial License 1.0.
 # Contact: contact@naxemis.dev
 
+## Selects the player's current movement state each physics tick.
+##
+## Every physics frame the controller refreshes coyote time, resets the double-jump permission on the ground, and runs an internal entry-guard priority chain to pick the next [enum MovementStates] value.
+## When the chosen state differs from the current one (or whenever a wall-jump retrigger is possible) it emits [signal state_changed], which [Player], [MovementController], [StaminaManager] and [CollisionAnimator] all react to.
 class_name StateMachine
 extends Component
 
 # Signals
+## Fired whenever the active state changes, or whenever a wall jump is retriggerable (so callers can react even though the state id stays the same).
+## [code]new_state[/code] is a [enum MovementStates] value.
 signal state_changed(new_state: int)
 
 # Enums and constants
+## All movement states the player can be in.
+## [br]- [code]IDLE[/code]: grounded, not moving.
+## [br]- [code]WALK[/code]: grounded, moving with no run/crouch input.
+## [br]- [code]RUN[/code]: grounded, run held while moving forward.
+## [br]- [code]CROUCH[/code]: grounded, crouch held or stuck under a ceiling.
+## [br]- [code]SLIDE[/code]: grounded, slide held with forward momentum.
+## [br]- [code]JUMP[/code]: initial leap off the ground or within coyote time.
+## [br]- [code]DOUBLE_JUMP[/code]: airborne second jump consuming the double-jump permission.
+## [br]- [code]WALL_JUMP[/code]: jump off a wall while not on the floor.
+## [br]- [code]FALL[/code]: airborne with negative vertical velocity.
 enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUMP, FALL}
 
 # @export vars
 @export_category("Coyote Time")
+## Grace period in seconds after leaving the ground during which jump input still counts as a ground jump.
+## Refilled whenever the player is on the floor, drained each airborne physics step.
 @export var default_coyote_time: float = 0.15
 
 # Public vars
@@ -42,12 +60,15 @@ func _physics_process(delta: float) -> void:
 	_current_state = _update_state()
 
 # Public methods
+## Caches sibling components and the player root from the injected context.
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_player = context.node_refs.player
 	_movement_controller = context.components.movement_controller
 	_stamina_manager = context.components.stamina_manager
 
+## Forces the coyote-time window to zero.
+## Called by [method MovementController.jump] so a single jump cannot also satisfy the coyote check on the next frame.
 func consume_coyote() -> void:
 	_coyote_time_left = 0
 
@@ -85,7 +106,7 @@ func _calculate_coyote_time(delta: float) -> void:
 		_coyote_time_left = default_coyote_time
 	else:
 		_coyote_time_left -= delta
-	
+
 	_coyote_time_active = _coyote_time_left > 0.0
 
 func _can_jump_off_ground() -> bool:
@@ -143,31 +164,31 @@ func _can_enter_fall() -> bool:
 func _compute_next_state() -> int:
 	if _can_enter_jump(): return MovementStates.JUMP
 	if _can_enter_wall_jump(): return MovementStates.WALL_JUMP
-	if _can_enter_double_jump(): 
+	if _can_enter_double_jump():
 		_can_double_jump = false
 		return MovementStates.DOUBLE_JUMP
-	
+
 	if _can_enter_fall(): return MovementStates.FALL
-	
+
 	if _can_enter_slide():
 		if _current_state == MovementStates.SLIDE or _stamina_manager.is_above_safe_zone():
 			return MovementStates.SLIDE
 		return _current_state
-	
+
 	if _can_enter_run(): return MovementStates.RUN
 	if _can_enter_crouch(): return MovementStates.CROUCH
 	if _can_enter_walk(): return MovementStates.WALK
 	if _can_enter_idle(): return MovementStates.IDLE
-	
+
 	return _current_state
 
 func _update_state() -> int:
 	var new_state := _compute_next_state()
-	
+
 	if new_state != _current_state:
 		_current_state = new_state
 		state_changed.emit(new_state)
-	elif _can_enter_wall_jump(): # player can wall jump multiple times, even if they are already in wall jump state
+	elif _can_enter_wall_jump(): # let player wall jump another time, even if they are already in wall jump state
 		state_changed.emit(new_state)
-		
+
 	return _current_state
