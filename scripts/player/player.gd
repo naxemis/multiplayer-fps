@@ -1,35 +1,25 @@
 class_name Player
 extends CharacterBody3D
 
-# TODO (REFACTOR PLAN): 
-# refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
-# for example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
-# and then have the Player script use those components to manage the player's behavior. 
-# This will make the code more organized, easier to read, and maintainable in the long run.
+# TODO (REFACTOR PLAN) [IN PROGRESS]: 
+# TODO: Refactor the code by splitting it into multiple scripts and using composition instead of having everything in one script; 
+# TODO: For example, create separate scripts for handling movement states, stamina, collision shape animations, etc. 
+# TODO: Then have the Player script use those components to manage the player's behavior. 
+# TODO: This will make the code more organized, easier to read, and maintainable in the long run.
 #
 # https://github.com/naxemis/multiplayer-fps/issues/1
 
-#region Velocity Timeout
-@export_category("Velocity Timeout")
-@export var time_before_velocity_timeout: float = 0.75 # how long player have to walk into wall before timeout
-var velocity_timeout_time_left: float = 0.0 # current time before timeout is set to true
-var velocity_timeout: bool = false # true - player is walking into wall for too long time
-func is_blocked_on_wall() -> bool:
-	return is_on_floor() and is_on_wall() and velocity.z == 0 and velocity.x == 0
+# TODO (MOVING UP SLOPES BUG):
+# TODO: Movement on slopes is still bugged. Slopes can randomly block players - especially when they are trying to run or slide up them. 
+# TODO: This is probably because of the way the movement speed is calculated and how it interacts with the slope.
+# TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
+# TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
 
-func get_velocity_timeout(delta) -> void:
-	velocity_timeout_time_left = clampf(velocity_timeout_time_left, 0.0, time_before_velocity_timeout)
-	
-	if is_blocked_on_wall():
-		velocity_timeout_time_left -= delta
-	else:
-		velocity_timeout_time_left = time_before_velocity_timeout
-	
-	if velocity_timeout_time_left <= 0:
-		velocity_timeout = true
-	else:
-		velocity_timeout = false
-#endregion
+# TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for components that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
+
+# TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
+
+# TODO (PROJECT LICENSE): Add license to all scripts and project root
 
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
@@ -44,9 +34,9 @@ var amount_above_crouch_clamp: float
 func collision_shape_animations(delta) -> void:
 	collision_blend_amount = clampf(collision_blend_amount, 0.0, slide_blend_amount)
 	
-	if _context.state_machine._current_state == _context.state_machine.MovementStates.CROUCH:
+	if _state_machine._current_state == _state_machine.MovementStates.CROUCH:
 		collision_blend_amount = lerpf(collision_blend_amount, crouch_blend_amount, crouch_animation_speed * delta)
-	elif _context.state_machine._current_state == _context.state_machine.MovementStates.SLIDE:
+	elif _state_machine._current_state == _state_machine.MovementStates.SLIDE:
 		collision_blend_amount = lerpf(collision_blend_amount, slide_blend_amount, slide_animation_speed * delta)
 	else:
 		if collision_blend_amount <= crouch_blend_amount:
@@ -57,101 +47,10 @@ func collision_shape_animations(delta) -> void:
 	$CollisionAnimationTree["parameters/State Blend/blend_amount"] = collision_blend_amount
 #endregion
 
-#region Movement Speed
-var movement_speed: float = 0.0
-
-@export_category("Crouching and Walking")
-@export var crouch_speed: float = 2.0
-@export var walk_speed: float = 2.0
-var current_walk_speed: float = 0.0
-
-@export_category("Running")
-var run_speed: float = 0.0
-@export var max_run_speed: float = 2.5
-
-@export var run_speed_increase: float = 1.0
-@export var run_walk_decrease: float = 2.5
-@export var run_crouch_decrease: float = 4.0
-
-@export_category("Sliding")
-var slide_speed: float = 0.0
-@export var max_slide_speed: float = 2.5
-
-@export var slide_buff_multiplier: float = 0.15 # multiplies (after adding slope_interference) slide buff from floor_speed
-@export var slope_uphill_brake_factor: float = 0.85 # how much uphill brakes slide
-@export var slope_downhill_boost_factor: float = 0.5 # how much downhill boosts slide
-
-@export var slide_run_decrease: float = 0.05 # decrease when switching to running
-@export var slide_walk_decrease: float = 2.5 # decrease when switching to walking
-@export var slide_crouch_decrease: float = 4.0 # decrease when switching to crouching
-
-@export_category("Speed Inertia")
-@export var speed_inertia: float = 7.5
-
-func _walk() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	run_speed -= run_walk_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	slide_speed -= floor_speed * slide_walk_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-	
-func _run() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	run_speed += run_speed_increase * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	slide_speed -= floor_speed * slide_run_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _slide() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = walk_speed
-	
-	var floor_normal: Vector3 = get_floor_normal()
-	var forward_vector: Vector3 = -transform.basis.z
-	var calculating_slope: Vector3 = floor_normal * forward_vector
-	var slope_value: float = calculating_slope.z + calculating_slope.x
-	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
-	var slope_interference: float = slope_value * slope_factor
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
-	
-	slide_speed += actual_slide_buff * delta
-	slide_speed = clampf(slide_speed, -max_slide_speed, max_slide_speed)
-
-func _crouch_or_other() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	current_walk_speed = 0.0
-	
-	run_speed -= run_crouch_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-	
-	slide_speed -= slide_crouch_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
 #region Stamina
 @export_category("Movement Stamina")
 @export var max_stamina: float = 100.0
 @onready var stamina: float = max_stamina
-
-var stamina_recovery := {
-	_context.state_machine.MovementStates.IDLE: idle_stamina_recovery,
-	_context.state_machine.MovementStates.CROUCH: crouch_stamina_recovery,
-	_context.state_machine.MovementStates.WALK: walk_stamina_recovery,
-	_context.state_machine.MovementStates.RUN: run_stamina_recovery,
-}
 
 @export var idle_stamina_recovery: float = 25.0
 @export var crouch_stamina_recovery: float = 17.5
@@ -172,216 +71,130 @@ func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
 func calculate_stamina(delta) -> void:
 	stamina = clampf(stamina, 0.0, max_stamina)
 	
-	match _context.state_machine._current_state:
-		_context.state_machine.MovementStates.IDLE:
+	match _state_machine._current_state:
+		_state_machine.MovementStates.IDLE:
 			stamina += idle_stamina_recovery * delta
-		_context.state_machine.MovementStates.CROUCH:
+		_state_machine.MovementStates.CROUCH:
 			stamina += crouch_stamina_recovery * delta
-		_context.state_machine.MovementStates.WALK:
+		_state_machine.MovementStates.WALK:
 			stamina += walk_stamina_recovery * delta
-		_context.state_machine.MovementStates.RUN:
+		_state_machine.MovementStates.RUN:
 			stamina += run_stamina_recovery * delta
-		_context.state_machine.MovementStates.SLIDE:
+		_state_machine.MovementStates.SLIDE:
 			stamina -= slide_stamina_drain * delta
 	
 	if !is_on_floor():
 		stamina += in_air_stamina_recovery * delta
 	
 	if stamina <= stamina_safe_zone:
-		%StaminaBar.tint_progress = Color(188, 0, 0)
+		$StaminaBar.tint_progress = Color(188, 0, 0)
 	else:
-		%StaminaBar.tint_progress = Color(255, 255, 255)
+		$StaminaBar.tint_progress = Color(255, 255, 255)
 	
-	%StaminaBar.value = stamina
-	%StaminaBar.max_value = max_stamina
+	$StaminaBar.value = stamina
+	$StaminaBar.max_value = max_stamina
 #endregion
 
-#region Movement Directions and Inertia
-# in what direction player is trying to move
-var movement_directions: Vector3
-func get_movement_directions() -> void:
-	movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-	movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
-
-@export_category("Movement Inertia")
-var inertia_movement_directions: Vector3
-var current_inertia: float
-@export var on_ground_inertia: float = 8.0
-@export var in_air_inertia: float = 4.0
-func calulcate_movement_inertia(delta) -> void:
-	if is_on_floor():
-		current_inertia = on_ground_inertia
-	else:
-		current_inertia = in_air_inertia
-	
-	inertia_movement_directions.x = lerpf(inertia_movement_directions.x, movement_directions.x, current_inertia * delta)
-	inertia_movement_directions.z = lerpf(inertia_movement_directions.z, movement_directions.z, current_inertia * delta)
-#endregion
-
-#region Gravity, Jumping and Double Jumping
-@export_category("Gravity")
-# applies gravity to player's body, when it's not on floor
-@export var gravity_force: float = 18.0
-func _gravity(delta) -> void:
-	if !is_on_floor():
-		movement_directions.y -= gravity_force * delta
-	else:
-		pass
-
-@export_category("Jumping")
-# adds jumping mechanic to player's movement
-@export var jump_velocity: float = 7.5
-func _jump() -> void:
-	movement_directions.y = 0
-	movement_directions.y += jump_velocity
-		
-	_context.state_machine.consume_coyote()
-		
-	one_time_stamina_drain(jump_stamina_drain)
-
-@export_category("Double Jumping")
-@export var double_jump_multiplier: float = 0.7
-@export var can_double_jump_after_wall_jump: bool = false
-func _double_jump() -> void:
-	if movement_directions.y < 0:
-		movement_directions.y = 0.0
-		
-	movement_directions.y += jump_velocity * double_jump_multiplier
-		
-	one_time_stamina_drain(double_jump_stamina_drain)
-		
-	reset_wall_jumping_directions()
-#endregion
-
-#region Wall Jumping
-@export_category("Wall Jumping")
-var wall_jump_direction: Vector3
-@export var vertical_jump_multiplier: float = 0.85
-@export var min_vertical_jump: float = 5.0
-@export var max_vertical_jump: float = 7.5
-func reset_wall_jumping_directions() -> void:
-	wall_jump_direction = Vector3(1, 0, 1)
-
-func _wall_jump() -> void:
-	if _context.state_machine._can_enter_wall_jump():
-		reset_wall_jumping_directions()
-		
-		# calculates and clamps vertical jump force after wall jumping
-		var vertical_jump: float = movement_speed * vertical_jump_multiplier 
-		vertical_jump = clampf(vertical_jump, min_vertical_jump, max_vertical_jump)
-		
-		# gives player slight jump in vertical direction depending on his speed; more speed = bigger jump
-		movement_directions.y = 0.0
-		movement_directions.y += vertical_jump
-		
-		# direction of wall jump
-		if !Input.is_action_pressed("change_wall_jump_direction"): # player wants to jump in same direction he jumped from
-			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * movement_directions)
-		else: # player wants to "bounce" from a wall
-			wall_jump_direction = -get_wall_normal().direction_to(-transform.basis.z * -movement_directions)
-		
-		one_time_stamina_drain(wall_jump_stamina_drain)
-	
-	if is_on_floor():
-		reset_wall_jumping_directions()
-#endregion
-
-func movement_velocity() -> void:
-	var transform_x: Vector3 = global_transform.basis.x * inertia_movement_directions.x
-	var transform_y: Vector3 = global_transform.basis.y * movement_directions.y
-	var transform_z: Vector3 = global_transform.basis.z * inertia_movement_directions.z
-	
-	if _context.state_machine._current_state != _context.state_machine.MovementStates.WALL_JUMP:
-		velocity = (transform_x + transform_z) * movement_speed + transform_y
-	else:
-		velocity = wall_jump_direction * movement_speed + transform_y
-		
-	
-	move_and_slide()
-
-var current_movement_logic: Callable = _crouch_or_other
+var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
-	var states := _context.state_machine.MovementStates
-	
+	var states := _state_machine.MovementStates
+
+	print(new_state)
+
 	match new_state:
-		states.IDLE, states.CROUCH:
-			current_movement_logic = _crouch_or_other
-		states.WALK:
-			current_movement_logic = _walk
-		states.RUN:
-			current_movement_logic = _run
-		states.SLIDE:
-			current_movement_logic = _slide
-		states.JUMP: _jump()
-		states.DOUBLE_JUMP: _double_jump()
-		states.WALL_JUMP: _wall_jump()
+		states.IDLE, states.CROUCH: current_movement_logic = _movement_controller._crouch_or_other
+		states.WALK: current_movement_logic = _movement_controller._walk
+		states.RUN: current_movement_logic = _movement_controller._run
+		states.SLIDE: current_movement_logic = _movement_controller._slide
+		states.JUMP: _movement_controller.jump()
+		states.DOUBLE_JUMP: _movement_controller.double_jump()
+		states.WALL_JUMP: _movement_controller.wall_jump()
 
-var _context: PlayerContext = PlayerContext.new()
+var _player_context_module: PlayerContextModule = PlayerContextModule.new()
+var _state_machine: StateMachine
+var _movement_controller: MovementController
+var _camera_controller: CameraController
 
-func _init_context() -> void:
-	_context.head = %Head
-	_context.camera = %Camera
-	
-	_context.camera_controller = $CameraController
-	_context.state_machine = $MovementStateMachine
-	
-	_context.walk_speed = walk_speed
-	_context.crouch_speed = crouch_speed
-	_context.stamina_safe_zone = stamina_safe_zone
-	_context.jump_stamina_drain = jump_stamina_drain
-	_context.double_jump_stamina_drain = double_jump_stamina_drain
-	_context.wall_jump_stamina_drain = wall_jump_stamina_drain
-	_context.body_rotation = rotation
-
-func _build_process_context() -> void:
-	self.rotation = _context.body_rotation
-	
-func _build_physics_context() -> void:
-	_context.on_floor = is_on_floor()
-	_context.on_wall_only = is_on_wall_only()
-	_context.velocity = velocity
-	_context.velocity_timeout = velocity_timeout
-	_context.movement_directions = movement_directions
-	_context.movement_speed = movement_speed
-	_context.stamina = stamina
+# TODO: Move context initialization to a function in PlayerContextModule and then call it from corresponding engine callbacks in Player script
 
 func _unhandled_input(event: InputEvent) -> void:
-	_context.camera_controller.handle_input(event)
+	_camera_controller.handle_input(event)
+
+var _player_context_data: PlayerContextData
+
+func _create_context_data() -> void:
+	_player_context_data = PlayerContextData.new()
+
+
+func _init_player_node_refs_context_data() -> void:
+	_player_context_data.node_refs.player = self
+	_player_context_data.node_refs.head = $Head
+	_player_context_data.node_refs.camera = %Camera
+	
+	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
+
+func _init_player_components_context_data() -> void:
+	_player_context_data.components.camera_controller = $CameraController
+	_player_context_data.components.state_machine = $StateMachine
+	_player_context_data.components.movement_controller = $MovementController
+
+	_player_context_module.init_components_data(_player_context_data.components)
+
+func _pass_player_context_module_to_components() -> void:
+	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
+	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
+	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
+
+	_camera_controller = _player_context_module.components.camera_controller
+	_state_machine = _player_context_module.components.state_machine
+	_movement_controller = _player_context_module.components.movement_controller
+
+func _build_player_context_data() -> void:
+	_create_context_data()
+
+	_init_player_node_refs_context_data()
+	_init_player_components_context_data()
+	_pass_player_context_module_to_components()
+
+func _connect_state_machine_signal() -> void:
+	current_movement_logic = _movement_controller._crouch_or_other
+
+	_state_machine.state_changed.connect(_on_state_changed)
+
+func _debug_text() -> String:
+	return str(
+		"FPS: ", Engine.get_frames_per_second(), "\n",
+		"Velocity: ", round(velocity), "\n",
+		"Movement Speed: ", snappedf(_movement_controller.movement_speed, 0.1), "\n",
+		"Walk Speed: ", snappedf(_movement_controller.walk_speed, 0.01), "\n",
+		"Run Speed: ", snappedf(_movement_controller.run_speed, 0.01), "\n",
+		"Slide Speed: ", snappedf(_movement_controller.slide_speed, 0.01), "\n",
+		"Movement State: ", movement_states_array[_state_machine._current_state], "\n",
+		"Velocity Timeout Time Left: ", _movement_controller._velocity_timeout_left, "\n",
+		"Stamina: ", snappedf(stamina, 0.1), "\n",
+		"On Floor: ", is_on_floor(), "\n",
+		"On Wall: ", is_on_wall(), "\n",
+		"Camera FOV: ", snappedf(%Camera.fov, 0.1), "\n",
+		"Coyote Time Left: ", snappedf(_state_machine._coyote_time_left, 0.01)
+	)
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	
-	_init_context()
-	
-	_context.state_machine.state_changed.connect(_on_state_changed)
+
+	_build_player_context_data()
+	_connect_state_machine_signal()
 
 @onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
-func _process(delta: float) -> void:
-	_context.camera_controller.process(delta, _context)
-	
-	_build_process_context()
-		
-	%Debug.text = str("FPS:", Engine.get_frames_per_second(), " | Velocity: ", round(velocity), " | Movement Speed: ", snappedf(movement_speed, 0.1), " | Movement State: ", movement_states_array[_context.state_machine._current_state], " | Velocity Timeout Time Left: ", velocity_timeout_time_left, " | Current Inertia: ", current_inertia, " | Camera FOV: ", snappedf(%Camera.fov, 0.1), " | Coyote Time Left: ", snappedf(_context.state_machine._coyote_time_left, 0.01))
+func _process(_delta: float) -> void:
+	$Debug.text = _debug_text()
 
 func _physics_process(delta: float) -> void:
-	get_velocity_timeout(delta)
-	collision_shape_animations(delta)
-	calculate_stamina(delta)
-	get_movement_directions()
-	calulcate_movement_inertia(delta)
-
-	_build_physics_context()
-
-	_context.state_machine.physics_process(delta, _context) 
+	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
+	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
 
 	current_movement_logic.call()
-	
-	var floor_speed: float = crouch_speed + current_walk_speed + run_speed
-	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
 
-	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
-
-	_gravity(delta)
-	movement_velocity()
+	velocity = _movement_controller.compute_movement_velocity()
+	move_and_slide()
 	
