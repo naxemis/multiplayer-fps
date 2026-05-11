@@ -54,6 +54,9 @@ extends Node
 
 # Public vars
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
+var movement_speed: float = 0.0
+var run_speed: float = 0.0
+var slide_speed: float = 0.0
 
 # Private vars (_)
 var _player_context_module: PlayerContextModule
@@ -71,7 +74,7 @@ var _wall_jump_directions: Vector3
 func _physics_process(delta: float) -> void:
 	_get_velocity_timeout(delta)
 	_calculate_get_movement_directions()
-	_calulcate_movement_inertia(delta)
+	_calculate_movement_inertia(delta)
 	_gravity(delta)
 	_update_movement_speed(delta)
 
@@ -137,17 +140,15 @@ func wall_jump() -> void:
 	if _player.is_on_floor():
 		_reset_wall_jumping_directions()
 
-func compute_movement_velocity() -> void:
+func compute_movement_velocity() -> Vector3:
 	var transform_x: Vector3 = _player.global_transform.basis.x * _inertia_movement_directions.x
 	var transform_y: Vector3 = _player.global_transform.basis.y * _movement_directions.y
 	var transform_z: Vector3 = _player.global_transform.basis.z * _inertia_movement_directions.z
 
 	if _state_machine._current_state != _state_machine.MovementStates.WALL_JUMP:
-		_player.velocity = (transform_x + transform_z) * movement_speed + transform_y
+		return (transform_x + transform_z) * movement_speed + transform_y
 	else:
-		_player.velocity = _wall_jump_directions * movement_speed + transform_y
-
-	_player.move_and_slide()
+		return _wall_jump_directions * movement_speed + transform_y
 
 # Private methods (_)
 func _is_blocked_on_wall() -> bool:
@@ -165,12 +166,6 @@ func _get_velocity_timeout(delta) -> void:
 		velocity_timeout = true
 	else:
 		velocity_timeout = false
-
-var movement_speed: float = 0.0
-
-var run_speed: float = 0.0
-
-var slide_speed: float = 0.0
 
 func _walk() -> void:
 	var delta: float = get_physics_process_delta_time()
@@ -219,7 +214,7 @@ func _calculate_get_movement_directions() -> void:
 	_movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
 	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
 
-func _calulcate_movement_inertia(delta) -> void:
+func _calculate_movement_inertia(delta) -> void:
 	match _player.is_on_floor():
 		true: _current_inertia = on_ground_inertia
 		false: _current_inertia = in_air_inertia

@@ -195,5 +195,6 @@ func _physics_process(delta: float) -> void:
 
 	current_movement_logic.call()
 
-	_movement_controller.compute_movement_velocity()
+	velocity = _movement_controller.compute_movement_velocity()
+	move_and_slide()
 	
