@@ -66,6 +66,7 @@ var slide_speed: float = 0.0
 var _player_context_module: PlayerContextModule
 var _player: Player
 var _state_machine: StateMachine
+var _stamina_manager: StaminaManager
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
@@ -87,6 +88,7 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_player_context_module = player_context
 	_player = player_context.node_refs.player
 	_state_machine = player_context.components.state_machine
+	_stamina_manager = player_context.components.stamina_manager
 
 func get_movement_directions() -> Vector3:
 	return _movement_directions
@@ -108,7 +110,7 @@ func jump() -> void:
 
 	_state_machine.consume_coyote()
 
-	_player.one_time_stamina_drain(_player.jump_stamina_drain)
+	_stamina_manager.drain_once(_stamina_manager.jump_stamina_drain)
 
 func double_jump() -> void:
 	if get_movement_directions().y < 0:
@@ -116,7 +118,7 @@ func double_jump() -> void:
 
 	_movement_directions.y += jump_velocity * double_jump_multiplier
 
-	_player.one_time_stamina_drain(_player.double_jump_stamina_drain)
+	_stamina_manager.drain_once(_stamina_manager.double_jump_stamina_drain)
 
 	_reset_wall_jumping_directions()
 
@@ -134,12 +136,12 @@ func wall_jump() -> void:
 
 		var player_transform: Transform3D = _player.transform
 		# direction of wall jump
-		if !Input.is_action_pressed("change_wall_jump_directions"): # player wants to jump in same direction he jumped from
+		if !Input.is_action_pressed("change_wall_jump_direction"): # player wants to jump in same direction he jumped from
 			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * _movement_directions)
 		else: # player wants to "bounce" from a wall
 			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * -_movement_directions)
 
-		_player.one_time_stamina_drain(_player.wall_jump_stamina_drain)
+		_stamina_manager.drain_once(_stamina_manager.wall_jump_stamina_drain)
 
 	if _player.is_on_floor():
 		_reset_wall_jumping_directions()

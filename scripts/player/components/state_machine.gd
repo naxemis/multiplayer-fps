@@ -27,6 +27,7 @@ var _coyote_time_active: bool = true
 var _player_context_module: PlayerContextModule
 var _player: Player
 var _movement_controller: MovementController
+var _stamina_manager: StaminaManager
 
 # @onready vars
 
@@ -45,6 +46,7 @@ func pass_player_context_module(player_context: PlayerContextModule) -> void:
 	_player_context_module = player_context
 	_player = player_context.node_refs.player
 	_movement_controller = player_context.components.movement_controller
+	_stamina_manager = player_context.components.stamina_manager
 
 func consume_coyote() -> void:
 	_coyote_time_left = 0
@@ -68,12 +70,6 @@ func _is_moving() -> bool:
 
 func _is_moving_forward() -> bool:
 	return _movement_controller.get_movement_directions().z < 0
-
-func _has_stamina_for(cost: float) -> bool:
-	return _player.stamina - cost > 0 and _player.stamina > _player.stamina_safe_zone
-
-func _minimum_stamina(minimum: float) -> bool:
-	return _player.stamina > minimum
 
 func _is_on_ground() -> bool:
 	return _player.is_on_floor() and _player.velocity.y <= 0
@@ -117,33 +113,32 @@ func _can_enter_crouch() -> bool:
 
 	return (input_crouch or stuck_under_ceiling) and _is_on_ground()
 
+
+# TODO (MAX SLIDE SPEED PER SLIDE): Add max slide speed amount that player can get from a single slide. After some time after achieving max speed the speed should decrease,
 func _can_enter_slide() -> bool:
 	var input_slide: bool = Input.is_action_pressed("slide")
 
-	return input_slide and _is_on_ground() and _is_moving_forward() and !_movement_controller.velocity_timeout and _minimum_stamina(0.0) and !_unslide_ray_cast.is_colliding()
+	return input_slide and _is_on_ground() and _is_moving_forward() and !_movement_controller.velocity_timeout and _stamina_manager.has_stamina() and !_unslide_ray_cast.is_colliding()
 
 func _can_enter_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
 	var no_blocked_state: bool = _current_state != MovementStates.CROUCH
 
-	return input_jump and _can_jump_off_ground() and no_blocked_state and _has_stamina_for(_player.jump_stamina_drain)
+	return input_jump and _can_jump_off_ground() and no_blocked_state and _stamina_manager.can_perform(_stamina_manager.jump_stamina_drain)
 
 func _can_enter_double_jump() -> bool:
 	var input_jump: bool = Input.is_action_just_pressed("jump")
 	var in_air: bool = !_is_on_ground() and !_coyote_time_active
 
-	return input_jump and in_air and _has_stamina_for(_player.double_jump_stamina_drain) and _can_double_jump
+	return input_jump and in_air and _stamina_manager.can_perform(_stamina_manager.double_jump_stamina_drain) and _can_double_jump
 
 func _can_enter_wall_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _has_stamina_for(_player.wall_jump_stamina_drain)
+	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _stamina_manager.can_perform(_stamina_manager.wall_jump_stamina_drain)
 
 func _can_enter_fall() -> bool:
 	var can_fall_from_current_state: bool = _current_state != MovementStates.WALL_JUMP
 
 	return _is_airborne_state(_current_state) and !_player.is_on_wall_only() and _player.velocity.y < 0 and can_fall_from_current_state
-
-func _is_above_stamina_safe_zone() -> bool:
-	return _player.stamina > _player.stamina_safe_zone
 
 func _compute_next_state() -> int:
 	if _can_enter_jump(): return MovementStates.JUMP
@@ -155,7 +150,7 @@ func _compute_next_state() -> int:
 	if _can_enter_fall(): return MovementStates.FALL
 	
 	if _can_enter_slide():
-		if _current_state == MovementStates.SLIDE or _is_above_stamina_safe_zone():
+		if _current_state == MovementStates.SLIDE or _stamina_manager.is_above_safe_zone():
 			return MovementStates.SLIDE
 		return _current_state
 	

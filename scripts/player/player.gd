@@ -49,54 +49,6 @@ func collision_shape_animations(delta) -> void:
 	$CollisionAnimationTree["parameters/State Blend/blend_amount"] = collision_blend_amount
 #endregion
 
-#region Stamina
-@export_category("Movement Stamina")
-@export var max_stamina: float = 100.0
-@onready var stamina: float = max_stamina
-
-@export var idle_stamina_recovery: float = 25.0
-@export var crouch_stamina_recovery: float = 17.5
-@export var walk_stamina_recovery: float = 12.5
-@export var run_stamina_recovery: float = 7.5
-@export var in_air_stamina_recovery: float = 2.5
-
-@export var slide_stamina_drain: float = 7.5
-
-@export var jump_stamina_drain: float = 5.0
-@export var double_jump_stamina_drain: float = 2.5
-@export var wall_jump_stamina_drain: float = 2.5
-
-@export var stamina_safe_zone: float = 10.0
-func one_time_stamina_drain(value_of_stamina_drain: float) -> void:
-	stamina -= value_of_stamina_drain
-
-func calculate_stamina(delta) -> void:
-	stamina = clampf(stamina, 0.0, max_stamina)
-	
-	match _state_machine._current_state:
-		_state_machine.MovementStates.IDLE:
-			stamina += idle_stamina_recovery * delta
-		_state_machine.MovementStates.CROUCH:
-			stamina += crouch_stamina_recovery * delta
-		_state_machine.MovementStates.WALK:
-			stamina += walk_stamina_recovery * delta
-		_state_machine.MovementStates.RUN:
-			stamina += run_stamina_recovery * delta
-		_state_machine.MovementStates.SLIDE:
-			stamina -= slide_stamina_drain * delta
-	
-	if !is_on_floor():
-		stamina += in_air_stamina_recovery * delta
-	
-	if stamina <= stamina_safe_zone:
-		$StaminaBar.tint_progress = Color(188, 0, 0)
-	else:
-		$StaminaBar.tint_progress = Color(255, 255, 255)
-	
-	$StaminaBar.value = stamina
-	$StaminaBar.max_value = max_stamina
-#endregion
-
 var current_movement_logic: Callable
 
 func _on_state_changed(new_state):
@@ -117,6 +69,7 @@ var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 var _state_machine: StateMachine
 var _movement_controller: MovementController
 var _camera_controller: CameraController
+var _stamina_manager: StaminaManager
 
 func _unhandled_input(event: InputEvent) -> void:
 	_camera_controller.handle_input(event)
@@ -131,6 +84,7 @@ func _init_player_node_refs_context_data() -> void:
 	_player_context_data.node_refs.player = self
 	_player_context_data.node_refs.head = $Head
 	_player_context_data.node_refs.camera = %Camera
+	_player_context_data.node_refs.stamina_bar = $StaminaBar
 	
 	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
 
@@ -138,6 +92,7 @@ func _init_player_components_context_data() -> void:
 	_player_context_data.components.camera_controller = $CameraController
 	_player_context_data.components.state_machine = $StateMachine
 	_player_context_data.components.movement_controller = $MovementController
+	_player_context_data.components.stamina_manager = $StaminaManager
 
 	_player_context_module.init_components_data(_player_context_data.components)
 
@@ -145,14 +100,15 @@ func _pass_player_context_module_to_components() -> void:
 	_player_context_module.components.camera_controller.pass_player_context_module(_player_context_module)
 	_player_context_module.components.state_machine.pass_player_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_player_context_module(_player_context_module)
+	_player_context_module.components.stamina_manager.pass_player_context_module(_player_context_module)
 
 	_camera_controller = _player_context_module.components.camera_controller
 	_state_machine = _player_context_module.components.state_machine
 	_movement_controller = _player_context_module.components.movement_controller
+	_stamina_manager = _player_context_module.components.stamina_manager
 
 func _build_player_context_data() -> void:
 	_create_context_data()
-
 	_init_player_node_refs_context_data()
 	_init_player_components_context_data()
 	_pass_player_context_module_to_components()
@@ -172,7 +128,7 @@ func _debug_text() -> String:
 		"Slide Speed: ", snappedf(_movement_controller.slide_speed, 0.01), "\n",
 		"Movement State: ", movement_states_array[_state_machine._current_state], "\n",
 		"Velocity Timeout Time Left: ", _movement_controller._velocity_timeout_left, "\n",
-		"Stamina: ", snappedf(stamina, 0.1), "\n",
+		"Stamina: ", snappedf(_stamina_manager.stamina, 0.1), "\n",
 		"On Floor: ", is_on_floor(), "\n",
 		"On Wall: ", is_on_wall(), "\n",
 		"Camera FOV: ", snappedf(%Camera.fov, 0.1), "\n",
@@ -191,7 +147,6 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	collision_shape_animations(delta) # TODO (COLLISION ANIMATOR): Move to collision_animator component
-	calculate_stamina(delta) # TODO (STAMINA MANAGER): Move to stamina_manager component
 
 	current_movement_logic.call()
 

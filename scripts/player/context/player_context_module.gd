@@ -14,6 +14,8 @@ class NodeRefs extends ContextModule.NodeRefs:
 		get: return data.head
 	var camera: Camera3D:
 		get: return data.camera
+	var stamina_bar: TextureProgressBar:
+		get: return data.stamina_bar
 
 class Components extends ContextModule.Components:
 	var camera_controller: CameraController:
@@ -22,6 +24,8 @@ class Components extends ContextModule.Components:
 		get: return data.state_machine
 	var movement_controller: MovementController:
 		get: return data.movement_controller
+	var stamina_manager: StaminaManager:
+		get: return data.stamina_manager
 
 var node_refs: NodeRefs
 var components: Components
