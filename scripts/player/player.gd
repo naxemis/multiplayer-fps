@@ -1,3 +1,7 @@
+# Copyright (c) 2026 naxemis.
+# Licensed under the PolyForm Noncommercial License 1.0.
+# Contact: contact@naxemis.dev
+
 class_name Player
 extends CharacterBody3D
 
@@ -18,8 +22,6 @@ extends CharacterBody3D
 # TODO (COMPONENTS ABSTRACT CLASSES): Add abstraction class for components that contain "pass_context()" method and "process(delta)" and "physics_process(delta)" methods, because it's a common pattern in all components and it would be good to have a blueprint for it.
 
 # TODO (CODE DOCUMENTATION): Write documentation comments in all componets and contexts (same with abstraction classes) for classes, functions and variables
-
-# TODO (PROJECT LICENSE): Add license to all scripts and project root
 
 #region Collision Shape Animations
 @export_category("Collision Shape Animations")
@@ -115,8 +117,6 @@ var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 var _state_machine: StateMachine
 var _movement_controller: MovementController
 var _camera_controller: CameraController
-
-# TODO: Move context initialization to a function in PlayerContextModule and then call it from corresponding engine callbacks in Player script
 
 func _unhandled_input(event: InputEvent) -> void:
 	_camera_controller.handle_input(event)
