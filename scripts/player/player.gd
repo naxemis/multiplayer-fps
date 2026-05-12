@@ -35,9 +35,16 @@ func _on_state_changed(new_state):
 		states.WALK: current_movement_logic = _movement_controller._walk
 		states.RUN: current_movement_logic = _movement_controller._run
 		states.SLIDE: current_movement_logic = _movement_controller._slide
-		states.JUMP: _movement_controller.jump()
-		states.DOUBLE_JUMP: _movement_controller.double_jump()
-		states.WALL_JUMP: _movement_controller.wall_jump()
+		states.JUMP:
+			_movement_controller.jump()
+			current_movement_logic = _movement_controller._airborne
+		states.DOUBLE_JUMP:
+			_movement_controller.double_jump()
+			current_movement_logic = _movement_controller._airborne
+		states.WALL_JUMP:
+			_movement_controller.wall_jump()
+			current_movement_logic = _movement_controller._airborne
+		states.FALL: current_movement_logic = _movement_controller._airborne
 
 var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 var _input_handler: InputHandler

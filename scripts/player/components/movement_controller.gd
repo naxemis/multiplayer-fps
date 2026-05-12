@@ -281,6 +281,9 @@ func _crouch_or_other() -> void:
 	slide_speed -= slide_speed_crouch_decrease * delta
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
+func _airborne() -> void:
+	pass
+
 func _calculate_get_movement_directions() -> void:
 	var axis: Vector3 = _input_handler.movement_axis
 	_movement_directions.x = axis.x
