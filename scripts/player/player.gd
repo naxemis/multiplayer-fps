@@ -85,7 +85,7 @@ func _debug_text() -> String:
 		"FPS: ", Engine.get_frames_per_second(), "\n",
 		"Velocity: ", round(velocity), "\n",
 		"Movement Speed: ", snappedf(_movement_controller.movement_speed, 0.1), "\n",
-		"Target Speed: ", snappedf(_movement_controller._target_speed, 0.1), "\n",
+		"Target Speed: ", snappedf(_movement_controller._target_speed_for_state(_state_machine._current_state), 0.1), "\n",
 		"Movement State: ", movement_states_array[_state_machine._current_state], "\n",
 		"Velocity Timeout Time Left: ", _movement_controller._velocity_timeout_left, "\n",
 		"Stamina: ", snappedf(_stamina_manager.stamina, 0.1), "\n",

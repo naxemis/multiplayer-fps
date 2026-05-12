@@ -5,7 +5,7 @@
 ## Translates input + the current [enum StateMachine.MovementStates] into a physics velocity for [Player].
 ## Owns the jump APIs and the velocity-timeout flag.
 ##
-## Each physics tick this controller updates the velocity-timeout flag, reads movement input, smooths it through movement inertia, applies gravity and lerps the scalar [member movement_speed] toward a per-state [member _target_speed].
+## Each physics tick this controller updates the velocity-timeout flag, reads movement input, smooths it through movement inertia, applies gravity and lerps the scalar [member movement_speed] toward the per-state target returned by [method _target_speed_for_state].
 ## [Player] reads the resulting velocity through [method compute_movement_velocity].
 class_name MovementController
 extends Component
@@ -33,19 +33,23 @@ extends Component
 @export var slide_speed: float = 8.0
 
 @export_category("Speed Inertia")
-## Lerp rate (per second) used while [member movement_speed] is below [member _target_speed] — controls how snappy speed buildup feels.
-@export var speed_accel: float = 7.5
+## Default lerp rate (per second) used while ramping [member movement_speed] up toward the target in [code]IDLE[/code], [code]CROUCH[/code] and [code]WALK[/code].
+@export var normal_speed_acceleration: float = 8.0
+## Lerp rate used while ramping up to [member run_speed] — lower value means run takes longer to reach top speed.
+@export var run_speed_acceleration: float = 2.0
+## Lerp rate used while ramping up to [member slide_speed] — high value snaps the player into slide momentum.
+@export var slide_speed_acceleration: float = 10.0
 ## Lerp rate used while bleeding excess speed in [code]IDLE[/code].
-@export var idle_speed_decel: float = 6.0
+@export var idle_speed_deacceleration: float = 6.0
 ## Lerp rate used while bleeding excess speed in [code]CROUCH[/code].
-@export var crouch_speed_decel: float = 4.0
+@export var crouch_speed_deacceleration: float = 4.0
 ## Lerp rate used while bleeding excess speed in [code]WALK[/code].
-@export var walk_speed_decel: float = 2.0
+@export var walk_speed_deacceleration: float = 2.0
 ## Lerp rate used while bleeding excess speed in [code]RUN[/code].
 ## Low value lets slide momentum carry into a run.
-@export var run_speed_decel: float = 0.5
+@export var run_speed_deacceleration: float = 0.5
 ## Lerp rate used while bleeding excess speed in [code]SLIDE[/code].
-@export var slide_speed_decel: float = 0.5
+@export var slide_speed_deacceleration: float = 0.5
 
 @export_category("Movement Inertia")
 ## Lerp rate (per second) applied to planar input while grounded — controls how quickly direction changes register on the floor.
@@ -55,7 +59,7 @@ extends Component
 @export var in_air_inertia: float = 4.0
 
 @export_category("Gravity")
-## Gravity acceleration in m/s².
+## Gravity accelerationeration in m/s².
 ## Applied only while not on the floor.
 @export var gravity_force: float = 18.0
 
@@ -97,9 +101,6 @@ var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
 var _current_inertia: float
 var _wall_jump_directions: Vector3
-## Target value [member movement_speed] lerps toward each frame.
-## Updated on [signal StateMachine.state_changed]; frozen during airborne states so speed carries through jumps.
-var _target_speed: float = 0.0
 
 # _init / _ready
 
@@ -113,7 +114,7 @@ func _physics_process(delta: float) -> void:
 
 # Public methods (component APIs)
 ## Caches sibling components and the player root from the injected context.
-## Also connects to [signal StateMachine.state_changed] to drive [member _target_speed] and jump impulses.
+## Also connects to [signal StateMachine.state_changed] to fire jump impulses.
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_player = context.node_refs.player
@@ -205,15 +206,9 @@ func _on_state_changed(new_state: int) -> void:
 	var states := _state_machine.MovementStates
 
 	match new_state:
-		states.IDLE: _target_speed = idle_speed
-		states.CROUCH: _target_speed = crouch_speed
-		states.WALK: _target_speed = walk_speed
-		states.RUN: _target_speed = run_speed
-		states.SLIDE: _target_speed = slide_speed
 		states.JUMP: jump()
 		states.DOUBLE_JUMP: double_jump()
 		states.WALL_JUMP: wall_jump()
-		# FALL and the airborne states leave _target_speed untouched so momentum carries.
 
 func _is_blocked_on_wall() -> bool:
 	return _player.is_on_floor() and _player.is_on_wall() and _player.velocity.z == 0 and _player.velocity.x == 0
@@ -231,6 +226,36 @@ func _get_velocity_timeout(delta) -> void:
 	else:
 		velocity_timeout = false
 
+func _has_movement_input() -> bool:
+	return _movement_directions.x != 0.0 or _movement_directions.z != 0.0
+
+func _target_speed_for_state(state: int) -> float:
+	var states := _state_machine.MovementStates
+	match state:
+		states.IDLE: return idle_speed
+		states.CROUCH: return crouch_speed if _has_movement_input() else idle_speed
+		states.WALK: return walk_speed
+		states.RUN: return run_speed
+		states.SLIDE: return slide_speed
+	return movement_speed
+
+func _acceleration_speed_for_state(state: int) -> float:
+	var states := _state_machine.MovementStates
+	match state:
+		states.RUN: return run_speed_acceleration
+		states.SLIDE: return slide_speed_acceleration
+	return normal_speed_acceleration
+
+func _deacceleration_speed_for_state(state: int) -> float:
+	var states := _state_machine.MovementStates
+	match state:
+		states.IDLE: return idle_speed_deacceleration
+		states.CROUCH: return crouch_speed_deacceleration
+		states.WALK: return walk_speed_deacceleration
+		states.RUN: return run_speed_deacceleration
+		states.SLIDE: return slide_speed_deacceleration
+	return normal_speed_acceleration
+
 func _update_movement_speed(delta: float) -> void:
 	var state: int = _state_machine._current_state
 	var states := _state_machine.MovementStates
@@ -239,18 +264,9 @@ func _update_movement_speed(delta: float) -> void:
 	if state == states.JUMP or state == states.DOUBLE_JUMP or state == states.WALL_JUMP or state == states.FALL:
 		return
 
-	var rate: float = speed_accel if _target_speed >= movement_speed else _decel_for_state(state)
-	movement_speed = lerpf(movement_speed, _target_speed, 1.0 - exp(-rate * delta))
-
-func _decel_for_state(state: int) -> float:
-	var states := _state_machine.MovementStates
-	match state:
-		states.IDLE: return idle_speed_decel
-		states.CROUCH: return crouch_speed_decel
-		states.WALK: return walk_speed_decel
-		states.RUN: return run_speed_decel
-		states.SLIDE: return slide_speed_decel
-	return speed_accel
+	var target: float = _target_speed_for_state(state)
+	var rate: float = _acceleration_speed_for_state(state) if target >= movement_speed else _deacceleration_speed_for_state(state)
+	movement_speed = lerpf(movement_speed, target, 1.0 - exp(-rate * delta))
 
 func _calculate_get_movement_directions() -> void:
 	var axis: Vector3 = _input_handler.movement_axis
