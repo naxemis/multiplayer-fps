@@ -113,6 +113,7 @@ var _player_context_module: PlayerContextModule
 var _player: Player
 var _state_machine: StateMachine
 var _stamina_manager: StaminaManager
+var _input_handler: InputHandler
 var _velocity_timeout_left: float = 0.0 # current time before timeout is set to true
 var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
@@ -136,6 +137,7 @@ func pass_context_module(context: ContextModule) -> void:
 	_player = context.node_refs.player
 	_state_machine = context.components.state_machine
 	_stamina_manager = context.components.stamina_manager
+	_input_handler = context.components.input_handler
 
 ## Returns the raw per-frame input direction (X/Z planar, Y carries gravity and jumps).
 ## Used by [StateMachine] entry guards and other components.
@@ -196,7 +198,7 @@ func wall_jump() -> void:
 
 		var player_transform: Transform3D = _player.transform
 		# direction of wall jump
-		if !Input.is_action_pressed("change_wall_jump_direction"): # player wants to jump in same direction he jumped from
+		if !_input_handler.change_wall_jump_dir_held: # player wants to jump in same direction he jumped from
 			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * _movement_directions)
 		else: # player wants to "bounce" from a wall
 			_wall_jump_directions = -_player.get_wall_normal().direction_to(-player_transform.basis.z * -_movement_directions)
@@ -280,8 +282,9 @@ func _crouch_or_other() -> void:
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
 func _calculate_get_movement_directions() -> void:
-	_movement_directions.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-	_movement_directions.z = Input.get_action_strength("back") - Input.get_action_strength("forward")
+	var axis: Vector2 = _input_handler.movement_axis
+	_movement_directions.x = axis.x
+	_movement_directions.z = axis.y
 
 func _calculate_movement_inertia(delta) -> void:
 	match _player.is_on_floor():

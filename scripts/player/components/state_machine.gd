@@ -46,6 +46,7 @@ var _player_context_module: PlayerContextModule
 var _player: Player
 var _movement_controller: MovementController
 var _stamina_manager: StaminaManager
+var _input_handler: InputHandler
 
 # @onready vars
 
@@ -66,6 +67,7 @@ func pass_context_module(context: ContextModule) -> void:
 	_player = context.node_refs.player
 	_movement_controller = context.components.movement_controller
 	_stamina_manager = context.components.stamina_manager
+	_input_handler = context.components.input_handler
 
 ## Forces the coyote-time window to zero.
 ## Called by [method MovementController.jump] so a single jump cannot also satisfy the coyote check on the next frame.
@@ -123,13 +125,13 @@ func _can_enter_walk() -> bool:
 	return _is_moving() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_movement_controller.velocity_timeout
 
 func _can_enter_run() -> bool:
-	var input_run: bool = Input.is_action_pressed("run")
+	var input_run: bool = _input_handler.run_held
 
 	return input_run and _is_moving_forward() and _is_on_ground() and !_uncrouch_ray_cast.is_colliding() and !_movement_controller.velocity_timeout
 
 # TODO (UNSLIDE WHEN UNDER CEILING BUG): When stopping sliding with ceiling above the head, player doesn't instantly crouch. It let's player unslide and enters idle movement state
 func _can_enter_crouch() -> bool:
-	var input_crouch: bool = Input.is_action_pressed("crouch")
+	var input_crouch: bool = _input_handler.crouch_held
 	var stuck_under_ceiling: bool = _uncrouch_ray_cast.is_colliding() or _unslide_ray_cast.is_colliding()
 
 	return (input_crouch or stuck_under_ceiling) and _is_on_ground()
@@ -137,24 +139,24 @@ func _can_enter_crouch() -> bool:
 
 # TODO (MAX SLIDE SPEED PER SLIDE): Add max slide speed amount that player can get from a single slide. After some time after achieving max speed the speed should decrease,
 func _can_enter_slide() -> bool:
-	var input_slide: bool = Input.is_action_pressed("slide")
+	var input_slide: bool = _input_handler.slide_held
 
 	return input_slide and _is_on_ground() and _is_moving_forward() and !_movement_controller.velocity_timeout and _stamina_manager.has_stamina() and !_unslide_ray_cast.is_colliding()
 
 func _can_enter_jump() -> bool:
-	var input_jump: bool = Input.is_action_just_pressed("jump")
+	var input_jump: bool = _input_handler.jump_just_pressed
 	var no_blocked_state: bool = _current_state != MovementStates.CROUCH
 
 	return input_jump and _can_jump_off_ground() and no_blocked_state and _stamina_manager.can_perform(_stamina_manager.jump_stamina_drain)
 
 func _can_enter_double_jump() -> bool:
-	var input_jump: bool = Input.is_action_just_pressed("jump")
+	var input_jump: bool = _input_handler.jump_just_pressed
 	var in_air: bool = !_is_on_ground() and !_coyote_time_active
 
 	return input_jump and in_air and _stamina_manager.can_perform(_stamina_manager.double_jump_stamina_drain) and _can_double_jump
 
 func _can_enter_wall_jump() -> bool:
-	return Input.is_action_just_pressed("jump") and _player.is_on_wall_only() and _is_moving() and _stamina_manager.can_perform(_stamina_manager.wall_jump_stamina_drain)
+	return _input_handler.jump_just_pressed and _player.is_on_wall_only() and _is_moving() and _stamina_manager.can_perform(_stamina_manager.wall_jump_stamina_drain)
 
 func _can_enter_fall() -> bool:
 	var can_fall_from_current_state: bool = _current_state != MovementStates.WALL_JUMP

@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://cfnqx8vyrci5v" path="res://scripts/player/components/movement_controller.gd" id="6_75vfm"]
 [ext_resource type="Script" uid="uid://dbjtuyhw4gm0a" path="res://scripts/player/components/stamina_manager.gd" id="7_smgr1"]
 [ext_resource type="Script" uid="uid://2la613tmdiom" path="res://scripts/player/components/collision_animator.gd" id="8_qek5x"]
+[ext_resource type="Script" uid="uid://dkkace74ccw0r" path="res://scripts/player/components/input_handler.gd" id="9_inhdr"]
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_7dslh"]
 radius = 0.25
@@ -425,3 +426,7 @@ metadata/_custom_type_script = "uid://dbjtuyhw4gm0a"
 [node name="CollisionAnimator" type="Node" parent="." unique_id=517419070]
 script = ExtResource("8_qek5x")
 metadata/_custom_type_script = "uid://2la613tmdiom"
+
+[node name="InputHandler" type="Node" parent="." unique_id=1488626960]
+script = ExtResource("9_inhdr")
+metadata/_custom_type_script = "uid://dkkace74ccw0r"

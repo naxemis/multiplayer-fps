@@ -20,6 +20,8 @@ class NodeRefs extends ContextData.NodeRefs:
 
 ## Concrete bucket of sibling component references owned by [Player].
 class Components extends ContextData.Components:
+	## Central [Input] adapter and mouse-motion broadcaster.
+	var input_handler: InputHandler
 	## Camera/head input + FOV controller.
 	var camera_controller: CameraController
 	## Movement state selector.
