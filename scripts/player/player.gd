@@ -5,7 +5,7 @@
 ## Player root: orchestrates per-tick movement by composing dedicated [Component] subsystems through a [PlayerContextModule].
 ##
 ## On [method _ready] this node builds a [PlayerContextData] from its scene children (head, camera, stamina bar, animation tree, attached components), hands it to a [PlayerContextModule] and injects that module into every component via [method Component.pass_context_module].
-## The orchestrator itself owns very little state — it routes input to [CameraController], listens for [signal StateMachine.state_changed] to swap [member current_movement_logic], runs the active per-tick movement closure each physics frame, and finally consumes [method MovementController.compute_movement_velocity] to drive [method CharacterBody3D.move_and_slide].
+## The orchestrator itself owns very little state — it routes raw [InputEvent]s into [InputHandler] (which then re-broadcasts mouse motion to [CameraController] and exposes action state to the other components), listens for [signal StateMachine.state_changed] to swap [member current_movement_logic], runs the active per-tick movement closure each physics frame, and finally consumes [method MovementController.compute_movement_velocity] to drive [method CharacterBody3D.move_and_slide].
 class_name Player
 extends CharacterBody3D
 
@@ -40,6 +40,7 @@ func _on_state_changed(new_state):
 		states.WALL_JUMP: _movement_controller.wall_jump()
 
 var _player_context_module: PlayerContextModule = PlayerContextModule.new()
+var _input_handler: InputHandler
 var _state_machine: StateMachine
 var _movement_controller: MovementController
 var _camera_controller: CameraController
@@ -47,7 +48,7 @@ var _stamina_manager: StaminaManager
 var _collision_animator: CollisionAnimator
 
 func _unhandled_input(event: InputEvent) -> void:
-	_camera_controller.handle_input(event)
+	_input_handler.handle_input(event)
 
 var _player_context_data: PlayerContextData
 
@@ -65,6 +66,7 @@ func _init_player_node_refs_context_data() -> void:
 	_player_context_module.init_node_refs_data(_player_context_data.node_refs)
 
 func _init_player_components_context_data() -> void:
+	_player_context_data.components.input_handler = $InputHandler
 	_player_context_data.components.camera_controller = $CameraController
 	_player_context_data.components.state_machine = $StateMachine
 	_player_context_data.components.movement_controller = $MovementController
@@ -74,12 +76,14 @@ func _init_player_components_context_data() -> void:
 	_player_context_module.init_components_data(_player_context_data.components)
 
 func _pass_context_module_to_components() -> void:
+	_player_context_module.components.input_handler.pass_context_module(_player_context_module)
 	_player_context_module.components.camera_controller.pass_context_module(_player_context_module)
 	_player_context_module.components.state_machine.pass_context_module(_player_context_module)
 	_player_context_module.components.movement_controller.pass_context_module(_player_context_module)
 	_player_context_module.components.stamina_manager.pass_context_module(_player_context_module)
 	_player_context_module.components.collision_animator.pass_context_module(_player_context_module)
 
+	_input_handler = _player_context_module.components.input_handler
 	_camera_controller = _player_context_module.components.camera_controller
 	_state_machine = _player_context_module.components.state_machine
 	_movement_controller = _player_context_module.components.movement_controller
@@ -115,8 +119,6 @@ func _debug_text() -> String:
 	)
 
 func _ready():
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
 	_build_player_context_data()
 	_connect_state_machine_signal()
 

@@ -4,17 +4,13 @@
 
 ## Translates mouse motion into player body yaw, head pitch and free-look offsets, and drives the [Camera3D] FOV based on current movement speed.
 ##
-## Input is consumed via [method handle_input], called by [Player] from [method Player._unhandled_input].
+## Mouse motion arrives through [signal InputHandler.mouse_motion]; the controller connects to it in [method pass_context_module] and dispatches to body / head / free-look math based on [member InputHandler.freelook_held].
 ## Per-frame work happens in [method _process]: free-look return-to-center, combined head rotation and FOV interpolation.
 ## Designers tune sensitivity and limits via exported degree-valued fields; the controller caches a radians copy of each for the per-frame math.
 class_name CameraController
 extends Component
 
 # Signals
-## Emitted on the frame the [code]free_look[/code] action is pressed.
-signal freelook_started
-## Emitted on the frame the [code]free_look[/code] action is released.
-signal freelook_stopped
 
 # Enums and constants
 
@@ -75,6 +71,7 @@ var _player: Player
 var _head: Node3D
 var _camera: Camera3D
 var _movement_controller: MovementController
+var _input_handler: InputHandler
 
 # _init / _ready
 
@@ -85,18 +82,7 @@ func _process(delta: float) -> void:
 	_calculate_camera_fov(delta, _movement_controller.movement_speed)
 
 # Public methods (component APIs)
-## Routes a raw [InputEvent] from [method Player._unhandled_input] into the body/head/free-look math and emits [signal freelook_started] / [signal freelook_stopped] on action press/release.
-func handle_input(event: InputEvent) -> void:
-	if event.is_action_pressed("free_look"):
-		emit_signal("freelook_started")
-	elif event.is_action_released("free_look"):
-		emit_signal("freelook_stopped")
-
-	_body_rotation(event)
-	_calculate_base_head_rotation(event)
-	_calculate_free_look_rotation(event)
-
-## Caches the player, head pivot, camera and [MovementController] off the injected [PlayerContextModule].
+## Caches the player, head pivot, camera, [MovementController] and [InputHandler] off the injected [PlayerContextModule] and connects to [signal InputHandler.mouse_motion].
 ## See [method Component.pass_context_module].
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
@@ -104,36 +90,43 @@ func pass_context_module(context: ContextModule) -> void:
 	_head = context.node_refs.head
 	_camera = context.node_refs.camera
 	_movement_controller = context.components.movement_controller
+	_input_handler = context.components.input_handler
+
+	_input_handler.mouse_motion.connect(_on_mouse_motion)
 
 ## Returns the current combined head pitch/yaw in radians applied this frame.
 func get_head_rotation() -> Vector2:
 	return _head_rotation
 
 # Private methods (_)
-func _body_rotation(event) -> void:
-	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		_player.rotation.y -= event.relative.x * _mouse_sensitivity_rad
+func _on_mouse_motion(relative: Vector2) -> void:
+	if _input_handler.freelook_held:
+		_calculate_free_look_rotation(relative)
+	else:
+		_body_rotation(relative)
+		_calculate_base_head_rotation(relative)
 
-		const ROTATION_MIN: float = 0.0
-		const ROTATION_MAX: float = TAU
+func _body_rotation(relative: Vector2) -> void:
+	_player.rotation.y -= relative.x * _mouse_sensitivity_rad
 
-		_player.rotation.y = wrapf(_player.rotation.y, ROTATION_MIN, ROTATION_MAX)
+	const ROTATION_MIN: float = 0.0
+	const ROTATION_MAX: float = TAU
 
-func _calculate_base_head_rotation(event) -> void:
-	if event is InputEventMouseMotion and !Input.is_action_pressed("free_look"):
-		_base_head_rotation.x -= event.relative.y * _mouse_sensitivity_rad
-		_base_head_rotation.x = clampf(_base_head_rotation.x, -_head_rotation_limit_rad, _head_rotation_limit_rad)
+	_player.rotation.y = wrapf(_player.rotation.y, ROTATION_MIN, ROTATION_MAX)
 
-func _calculate_free_look_rotation(event) -> void:
-	if event is InputEventMouseMotion and Input.is_action_pressed("free_look"):
-		_free_look_rotation.x -= event.relative.y * (_mouse_sensitivity_rad * free_look_sensitivity_multiplier)
-		_free_look_rotation.y -= event.relative.x * (_mouse_sensitivity_rad * free_look_sensitivity_multiplier)
+func _calculate_base_head_rotation(relative: Vector2) -> void:
+	_base_head_rotation.x -= relative.y * _mouse_sensitivity_rad
+	_base_head_rotation.x = clampf(_base_head_rotation.x, -_head_rotation_limit_rad, _head_rotation_limit_rad)
 
-		_free_look_rotation.x = clampf(_free_look_rotation.x, -_free_look_rotation_limit_rad.x, _free_look_rotation_limit_rad.x)
-		_free_look_rotation.y = clampf(_free_look_rotation.y, -_free_look_rotation_limit_rad.y, _free_look_rotation_limit_rad.y)
+func _calculate_free_look_rotation(relative: Vector2) -> void:
+	_free_look_rotation.x -= relative.y * (_mouse_sensitivity_rad * free_look_sensitivity_multiplier)
+	_free_look_rotation.y -= relative.x * (_mouse_sensitivity_rad * free_look_sensitivity_multiplier)
+
+	_free_look_rotation.x = clampf(_free_look_rotation.x, -_free_look_rotation_limit_rad.x, _free_look_rotation_limit_rad.x)
+	_free_look_rotation.y = clampf(_free_look_rotation.y, -_free_look_rotation_limit_rad.y, _free_look_rotation_limit_rad.y)
 
 func _free_look_return(delta) -> void:
-	if !Input.is_action_pressed("free_look"):
+	if !_input_handler.freelook_held:
 		_free_look_rotation.x = lerpf(_free_look_rotation.x, 0.0, free_look_return_speed * delta)
 		_free_look_rotation.y = lerpf(_free_look_rotation.y, 0.0, free_look_return_speed * delta)
 

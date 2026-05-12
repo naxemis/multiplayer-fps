@@ -38,6 +38,10 @@ class NodeRefs extends ContextModule.NodeRefs:
 ## Typed read-only view over [member PlayerContextData.Components].
 ## Components fetch their siblings through these properties so wiring stays declarative and the [Player] owns the only mutable references.
 class Components extends ContextModule.Components:
+	## Centralized [Input] adapter.
+	## Other components read action state through this rather than calling [Input] directly, and subscribe to [signal InputHandler.mouse_motion] for per-frame mouse delta.
+	var input_handler: InputHandler:
+		get: return data.input_handler
 	## Handles look input, head pitch/yaw, free-look and FOV interpolation.
 	var camera_controller: CameraController:
 		get: return data.camera_controller
