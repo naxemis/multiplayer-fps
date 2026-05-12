@@ -31,6 +31,9 @@ extends Component
 @export var run_speed: float = 6.0
 ## Target [member movement_speed] in m/s while in [code]SLIDE[/code].
 @export var slide_speed: float = 8.0
+## Maximum speed a single slide can add on top of the speed the player entered the slide with.
+## Effective slide target is clamped to [code]entry_speed + max_slide_speed_gain[/code], so chaining slides is needed to reach [member slide_speed] from a walking start.
+@export var max_slide_speed_gain: float = 2.0
 
 @export_category("Speed Inertia")
 ## Default lerp rate (per second) used while ramping [member movement_speed] up toward the target in [code]IDLE[/code], [code]CROUCH[/code] and [code]WALK[/code].
@@ -101,6 +104,7 @@ var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
 var _current_inertia: float
 var _wall_jump_directions: Vector3
+var _slide_entry_speed: float = 0.0
 
 # _init / _ready
 
@@ -206,6 +210,7 @@ func _on_state_changed(new_state: int) -> void:
 	var states := _state_machine.MovementStates
 
 	match new_state:
+		states.SLIDE: _slide_entry_speed = movement_speed
 		states.JUMP: jump()
 		states.DOUBLE_JUMP: double_jump()
 		states.WALL_JUMP: wall_jump()
@@ -236,7 +241,7 @@ func _target_speed_for_state(state: int) -> float:
 		states.CROUCH: return crouch_speed if _has_movement_input() else idle_speed
 		states.WALK: return walk_speed
 		states.RUN: return run_speed
-		states.SLIDE: return slide_speed
+		states.SLIDE: return minf(slide_speed, _slide_entry_speed + max_slide_speed_gain)
 	return movement_speed
 
 func _acceleration_speed_for_state(state: int) -> float:
