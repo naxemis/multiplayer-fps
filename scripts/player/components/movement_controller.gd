@@ -6,7 +6,7 @@
 ## Owns the jump APIs and the velocity-timeout flag.
 ##
 ## Each physics tick this controller updates the velocity-timeout flag, reads movement input, smooths it through movement inertia, applies gravity and lerps the scalar [member movement_speed].
-## [Player] then reads the per-state speed accumulators (via the [code]_walk[/code], [code]_run[/code], [code]_slide[/code], [code]_crouch_or_other[/code] callables) and the resulting velocity through [method compute_movement_velocity].
+## [Player] then reads the per-state speed accumulators (via the [code]_walk[/code], [code]_run[/code], [code]_slide[/code], [code]_idle[/code], [code]_crouch[/code] callables) and the resulting velocity through [method compute_movement_velocity].
 class_name MovementController
 extends Component
 
@@ -31,18 +31,20 @@ extends Component
 @export_category("Running")
 ## Upper clamp for the run-only speed accumulator in m/s.
 ## Run never adds more than this on top of [member walk_speed].
-@export var max_run_speed: float = 2.5
+@export var max_run_speed: float = 3.0
 ## Run-speed buildup rate per second while running.
 @export var run_speed_increase: float = 1.0
 ## Run-speed bleed-off rate per second while only walking.
-@export var run_walk_decrease: float = 2.5
-## Run-speed bleed-off rate per second while crouching or in air.
-@export var run_crouch_decrease: float = 4.0
+@export var run_speed_walk_decrease: float = 2.0
+## Run-speed bleed-off rate per second while crouching.
+@export var run_speed_crouch_decrease: float = 4.0
+## Run-speed bleed-off rate per second while idle.
+@export var run_speed_idle_decrease: float = 6.0
 
 @export_category("Sliding")
 ## Upper clamp for the slide-only speed accumulator in m/s.
 ## The slide branch lets the value dip below zero (uphill braking) but never above this.
-@export var max_slide_speed: float = 2.5
+@export var max_slide_speed: float = 3.0
 
 ## Fraction of grounded floor speed converted into slide buildup per second on flat ground (before slope modulation).
 @export var slide_buff_multiplier: float = 0.15
@@ -55,9 +57,11 @@ extends Component
 ## Low value means run sustains slide longest.
 @export var slide_speed_run_decrease: float = 0.05
 ## Slide-speed bleed multiplier while walking.
-@export var slide_speed_walk_decrease: float = 2.5
-## Slide-speed bleed multiplier while crouching / not running.
+@export var slide_speed_walk_decrease: float = 2.0
+## Slide-speed bleed rate per second while crouching.
 @export var slide_speed_crouch_decrease: float = 4.0
+## Slide-speed bleed rate per second while idle.
+@export var slide_speed_idle_decrease: float = 6.0
 
 @export_category("Speed Inertia")
 ## Lerp rate (per second) used to smooth changes in the final scalar [member movement_speed].
@@ -120,8 +124,8 @@ var _inertia_movement_directions: Vector3
 var _current_inertia: float
 var _wall_jump_directions: Vector3
 ## Per-tick movement-logic callable swapped on [signal StateMachine.state_changed].
-## Points at one of [method _walk] / [method _run] / [method _slide] / [method _crouch_or_other] / [method _airborne] so [method _physics_process] only calls one function regardless of the active state.
-var _current_movement_logic: Callable = _crouch_or_other
+## Points at one of [method _walk] / [method _run] / [method _slide] / [method _idle] / [method _crouch] / [method _airborne] so [method _physics_process] only calls one function regardless of the active state.
+var _current_movement_logic: Callable = _idle
 
 # _init / _ready
 
@@ -158,13 +162,6 @@ func get_inertia_movement_directions() -> Vector3:
 ## Returns the direction vector applied during an active wall jump.
 func get_wall_jump_directions() -> Vector3:
 	return _wall_jump_directions
-
-func _update_movement_speed(delta: float) -> void:
-	var is_crouching: bool = _state_machine._current_state == _state_machine.MovementStates.CROUCH
-	var effective_walk_speed: float = 0.0 if is_crouching else walk_speed
-	var floor_speed: float = crouch_speed + effective_walk_speed + run_speed
-	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
-	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
 ## Performs a ground jump: clears any prior vertical velocity, applies [member jump_velocity], consumes the coyote window on [StateMachine] and drains [member StaminaManager.jump_stamina_drain] once.
 func jump() -> void:
@@ -235,7 +232,8 @@ func _on_state_changed(new_state: int) -> void:
 	var states := _state_machine.MovementStates
 
 	match new_state:
-		states.IDLE, states.CROUCH: _current_movement_logic = _crouch_or_other
+		states.IDLE: _current_movement_logic = _idle
+		states.CROUCH: _current_movement_logic = _crouch
 		states.WALK: _current_movement_logic = _walk
 		states.RUN: _current_movement_logic = _run
 		states.SLIDE: _current_movement_logic = _slide
@@ -269,7 +267,7 @@ func _get_velocity_timeout(delta) -> void:
 func _walk() -> void:
 	var delta: float = get_physics_process_delta_time()
 
-	run_speed -= run_walk_decrease * delta
+	run_speed -= run_speed_walk_decrease * delta
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 
 	var floor_speed: float = crouch_speed + walk_speed + run_speed
@@ -300,10 +298,19 @@ func _slide() -> void:
 	slide_speed += actual_slide_buff * delta
 	slide_speed = clampf(slide_speed, -floor_speed, max_slide_speed)
 
-func _crouch_or_other() -> void:
+func _idle() -> void:
 	var delta: float = get_physics_process_delta_time()
 
-	run_speed -= run_crouch_decrease * delta
+	run_speed -= run_speed_idle_decrease * delta
+	run_speed = clampf(run_speed, 0.0, max_run_speed)
+
+	slide_speed -= slide_speed_idle_decrease * delta
+	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
+
+func _crouch() -> void:
+	var delta: float = get_physics_process_delta_time()
+
+	run_speed -= run_speed_crouch_decrease * delta
 	run_speed = clampf(run_speed, 0.0, max_run_speed)
 
 	slide_speed -= slide_speed_crouch_decrease * delta
@@ -311,6 +318,13 @@ func _crouch_or_other() -> void:
 
 func _airborne() -> void:
 	pass
+
+func _update_movement_speed(delta: float) -> void:
+	var is_crouching: bool = _state_machine._current_state == _state_machine.MovementStates.CROUCH
+	var effective_walk_speed: float = 0.0 if is_crouching else walk_speed
+	var floor_speed: float = crouch_speed + effective_walk_speed + run_speed
+	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
+	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
 func _calculate_get_movement_directions() -> void:
 	var axis: Vector3 = _input_handler.movement_axis
