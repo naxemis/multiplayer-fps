@@ -5,7 +5,7 @@
 ## Player root: orchestrates per-tick movement by composing dedicated [Component] subsystems through a [PlayerContextModule].
 ##
 ## On [method _ready] this node builds a [PlayerContextData] from its scene children (head, camera, stamina bar, animation tree, attached components), hands it to a [PlayerContextModule] and injects that module into every component via [method Component.pass_context_module].
-## The orchestrator itself owns very little state — it routes raw [InputEvent]s into [InputHandler] (which then re-broadcasts mouse motion to [CameraController] and exposes action state to the other components), listens for [signal StateMachine.state_changed] to swap [member current_movement_logic], runs the active per-tick movement closure each physics frame, and finally consumes [method MovementController.compute_movement_velocity] to drive [method CharacterBody3D.move_and_slide].
+## The orchestrator itself owns very little state — it routes raw [InputEvent]s into [InputHandler] (which then re-broadcasts mouse motion to [CameraController] and exposes action state to the other components) and consumes [method MovementController.compute_movement_velocity] each physics frame to drive [method CharacterBody3D.move_and_slide].
 class_name Player
 extends CharacterBody3D
 
@@ -22,29 +22,6 @@ extends CharacterBody3D
 # TODO: This is probably because of the way the movement speed is calculated and how it interacts with the slope.
 # TODO: The problem presists even on small slopes, so it is not a problem of the player being blocked by the slope itself.
 # TODO: Fix the problem when extracting code to seperate scripts, because it' not clear how to do it without breaking the code even more.
-
-## Per-tick movement-logic closure swapped on state change.
-## Points at one of [method MovementController._walk] / [code]_run[/code] / [code]_slide[/code] / [code]_crouch_or_other[/code] so [method _physics_process] only calls one function regardless of the active state.
-var current_movement_logic: Callable
-
-func _on_state_changed(new_state):
-	var states := _state_machine.MovementStates
-
-	match new_state:
-		states.IDLE, states.CROUCH: current_movement_logic = _movement_controller._crouch_or_other
-		states.WALK: current_movement_logic = _movement_controller._walk
-		states.RUN: current_movement_logic = _movement_controller._run
-		states.SLIDE: current_movement_logic = _movement_controller._slide
-		states.JUMP:
-			_movement_controller.jump()
-			current_movement_logic = _movement_controller._airborne
-		states.DOUBLE_JUMP:
-			_movement_controller.double_jump()
-			current_movement_logic = _movement_controller._airborne
-		states.WALL_JUMP:
-			_movement_controller.wall_jump()
-			current_movement_logic = _movement_controller._airborne
-		states.FALL: current_movement_logic = _movement_controller._airborne
 
 var _player_context_module: PlayerContextModule = PlayerContextModule.new()
 var _input_handler: InputHandler
@@ -103,11 +80,6 @@ func _build_player_context_data() -> void:
 	_init_player_components_context_data()
 	_pass_context_module_to_components()
 
-func _connect_state_machine_signal() -> void:
-	current_movement_logic = _movement_controller._crouch_or_other
-
-	_state_machine.state_changed.connect(_on_state_changed)
-
 func _debug_text() -> String:
 	return str(
 		"FPS: ", Engine.get_frames_per_second(), "\n",
@@ -127,15 +99,12 @@ func _debug_text() -> String:
 
 func _ready():
 	_build_player_context_data()
-	_connect_state_machine_signal()
 
 ## Human-readable labels for [enum StateMachine.MovementStates]; indexed by the enum's integer value when rendering the debug overlay.
 @onready var movement_states_array: Array[String] = ["IDLE", "WALK", "RUN", "CROUCH", "SLIDE", "JUMP", "DOUBLE_JUMP", "WALL_JUMP", "FALL"]
 func _process(_delta: float) -> void:
 	$Debug.text = _debug_text()
 
-func _physics_process(delta: float) -> void:
-	current_movement_logic.call()
-
+func _physics_process(_delta: float) -> void:
 	velocity = _movement_controller.compute_movement_velocity()
 	move_and_slide()

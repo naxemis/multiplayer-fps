@@ -119,11 +119,15 @@ var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
 var _current_inertia: float
 var _wall_jump_directions: Vector3
+## Per-tick movement-logic callable swapped on [signal StateMachine.state_changed].
+## Points at one of [method _walk] / [method _run] / [method _slide] / [method _crouch_or_other] / [method _airborne] so [method _physics_process] only calls one function regardless of the active state.
+var _current_movement_logic: Callable = _crouch_or_other
 
 # _init / _ready
 
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
 func _physics_process(delta: float) -> void:
+	_current_movement_logic.call()
 	_get_velocity_timeout(delta)
 	_calculate_get_movement_directions()
 	_calculate_movement_inertia(delta)
@@ -132,12 +136,15 @@ func _physics_process(delta: float) -> void:
 
 # Public methods (component APIs)
 ## Caches sibling components and the player root from the injected context.
+## Also connects to [signal StateMachine.state_changed] to drive [member _current_movement_logic].
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_player = context.node_refs.player
 	_state_machine = context.components.state_machine
 	_stamina_manager = context.components.stamina_manager
 	_input_handler = context.components.input_handler
+
+	_state_machine.state_changed.connect(_on_state_changed)
 
 ## Returns the raw per-frame input direction (X/Z planar, Y carries gravity and jumps).
 ## Used by [StateMachine] entry guards and other components.
@@ -153,7 +160,9 @@ func get_wall_jump_directions() -> Vector3:
 	return _wall_jump_directions
 
 func _update_movement_speed(delta: float) -> void:
-	var floor_speed: float = crouch_speed + walk_speed + run_speed
+	var is_crouching: bool = _state_machine._current_state == _state_machine.MovementStates.CROUCH
+	var effective_walk_speed: float = 0.0 if is_crouching else walk_speed
+	var floor_speed: float = crouch_speed + effective_walk_speed + run_speed
 	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
 	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
 
@@ -222,6 +231,25 @@ func compute_movement_velocity() -> Vector3:
 		return _wall_jump_directions * movement_speed + transform_y
 
 # Private methods (_)
+func _on_state_changed(new_state: int) -> void:
+	var states := _state_machine.MovementStates
+
+	match new_state:
+		states.IDLE, states.CROUCH: _current_movement_logic = _crouch_or_other
+		states.WALK: _current_movement_logic = _walk
+		states.RUN: _current_movement_logic = _run
+		states.SLIDE: _current_movement_logic = _slide
+		states.JUMP:
+			jump()
+			_current_movement_logic = _airborne
+		states.DOUBLE_JUMP:
+			double_jump()
+			_current_movement_logic = _airborne
+		states.WALL_JUMP:
+			wall_jump()
+			_current_movement_logic = _airborne
+		states.FALL: _current_movement_logic = _airborne
+
 func _is_blocked_on_wall() -> bool:
 	return _player.is_on_floor() and _player.is_on_wall() and _player.velocity.z == 0 and _player.velocity.x == 0
 
