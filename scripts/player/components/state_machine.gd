@@ -13,6 +13,11 @@ extends Component
 ## Fired whenever the active state changes, or whenever a wall jump is retriggerable (so callers can react even though the state id stays the same).
 ## [code]new_state[/code] is a [enum MovementStates] value.
 signal state_changed(new_state: int)
+## Fired when the slide cooldown begins (immediately after leaving [code]SLIDE[/code]).
+## During cooldown [method _can_enter_slide] rejects new slides.
+signal slide_cooldown_started
+## Fired when the slide cooldown elapses and a new slide can be entered again.
+signal slide_cooldown_ended
 
 # Enums and constants
 ## All movement states the player can be in.
@@ -33,6 +38,13 @@ enum MovementStates {IDLE, WALK, RUN, CROUCH, SLIDE, JUMP, DOUBLE_JUMP, WALL_JUM
 ## Refilled whenever the player is on the floor, drained each airborne physics step.
 @export var default_coyote_time: float = 0.15
 
+@export_category("Sliding")
+## Maximum continuous time in seconds a single slide can last before it forces an exit.
+@export var max_slide_time: float = 1.0
+## Maximum cooldown in seconds after a slide ends before another slide can be entered.
+## Scales linearly with how much of [member max_slide_time] was consumed — a slide cancelled instantly produces no cooldown.
+@export var slide_cooldown_time: float = 2.0
+
 # Public vars
 
 # Private vars (_)
@@ -42,6 +54,8 @@ var _unslide_ray_cast: RayCast3D
 var _can_double_jump: bool = true
 var _coyote_time_left: float = 0.0
 var _coyote_time_active: bool = true
+var _slide_time_left: float = 0.0
+var _slide_cooldown_left: float = 0.0
 var _player_context_module: PlayerContextModule
 var _player: Player
 var _movement_controller: MovementController
@@ -58,6 +72,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_calculate_coyote_time(delta)
 	_reset_double_jump()
+	_tick_slide_timers(delta)
 	_current_state = _update_state()
 
 # Public methods
@@ -137,11 +152,13 @@ func _can_enter_crouch() -> bool:
 	return (input_crouch or stuck_under_ceiling) and _is_on_ground()
 
 
-# TODO (MAX SLIDE SPEED PER SLIDE): Add max slide speed amount that player can get from a single slide. After some time after achieving max speed the speed should decrease,
 func _can_enter_slide() -> bool:
 	var input_slide: bool = _input_handler.slide_held
+	var common: bool = input_slide and _is_on_ground() and _is_moving_forward() and !_movement_controller.velocity_timeout and _stamina_manager.has_stamina() and !_unslide_ray_cast.is_colliding()
 
-	return input_slide and _is_on_ground() and _is_moving_forward() and !_movement_controller.velocity_timeout and _stamina_manager.has_stamina() and !_unslide_ray_cast.is_colliding()
+	if _current_state == MovementStates.SLIDE:
+		return common and _slide_time_left > 0.0
+	return common and _slide_cooldown_left <= 0.0
 
 func _can_enter_jump() -> bool:
 	var input_jump: bool = _input_handler.jump_just_pressed
@@ -188,9 +205,30 @@ func _update_state() -> int:
 	var new_state := _compute_next_state()
 
 	if new_state != _current_state:
+		if new_state == MovementStates.SLIDE:
+			_slide_time_left = max_slide_time
+		elif _current_state == MovementStates.SLIDE:
+			_start_slide_cooldown()
 		_current_state = new_state
 		state_changed.emit(new_state)
 	elif _can_enter_wall_jump(): # let player wall jump another time, even if they are already in wall jump state
 		state_changed.emit(new_state)
 
 	return _current_state
+
+func _tick_slide_timers(delta: float) -> void:
+	if _current_state == MovementStates.SLIDE:
+		_slide_time_left -= delta
+
+	if _slide_cooldown_left > 0.0:
+		_slide_cooldown_left -= delta
+		if _slide_cooldown_left <= 0.0:
+			_slide_cooldown_left = 0.0
+			slide_cooldown_ended.emit()
+
+func _start_slide_cooldown() -> void:
+	var used_fraction: float = clampf(1.0 - _slide_time_left / max_slide_time, 0.0, 1.0)
+	_slide_cooldown_left = slide_cooldown_time * used_fraction
+
+	if _slide_cooldown_left > 0.0:
+		slide_cooldown_started.emit()

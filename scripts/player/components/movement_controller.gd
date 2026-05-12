@@ -41,7 +41,7 @@ extends Component
 ## Lerp rate used while ramping up to [member run_speed] — lower value means run takes longer to reach top speed.
 @export var run_speed_acceleration: float = 2.0
 ## Lerp rate used while ramping up to [member slide_speed] — high value snaps the player into slide momentum.
-@export var slide_speed_acceleration: float = 10.0
+@export var slide_speed_acceleration: float = 4.0
 ## Lerp rate used while bleeding excess speed in [code]IDLE[/code].
 @export var idle_speed_deacceleration: float = 6.0
 ## Lerp rate used while bleeding excess speed in [code]CROUCH[/code].
