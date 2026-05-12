@@ -50,9 +50,9 @@ extends Component
 @export_category("Camera FOV")
 ## Base camera field of view in degrees applied when the player is standing still.
 @export var default_camera_fov: float = 59.0
-## Multiplier applied to [member MovementController.movement_speed] when computing the FOV boost.
+## Multiplier applied to [member MovementController.movement_speed] (anchored on [member MovementController.idle_speed]) when computing the FOV boost.
 ## Larger values widen the FOV more aggressively while running/sliding.
-@export var fov_speed_buff_factor: float = 2.5
+@export var fov_speed_buff_factor: float = 1.0
 ## Lerp rate (per second) used to smooth the camera's actual FOV toward the target computed each frame.
 @export var fov_interpolation_speed: float = 2.5
 
@@ -138,8 +138,7 @@ func _calculate_head_rotation(base, free_look) -> void:
 	_head.rotation = Vector3(_head_rotation.x, _head_rotation.y, 0.0)
 
 func _calculate_camera_fov(delta: float, movement_speed: float) -> void:
-	var idle_floor_speed: float = _movement_controller.walk_speed + _movement_controller.crouch_speed
-	var fov_speed_buff: float = (movement_speed - idle_floor_speed) * fov_speed_buff_factor
+	var fov_speed_buff: float = (movement_speed - _movement_controller.idle_speed) * fov_speed_buff_factor
 
 	_camera_fov = default_camera_fov + fov_speed_buff
 

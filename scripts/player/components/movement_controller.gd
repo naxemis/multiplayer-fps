@@ -5,8 +5,8 @@
 ## Translates input + the current [enum StateMachine.MovementStates] into a physics velocity for [Player].
 ## Owns the jump APIs and the velocity-timeout flag.
 ##
-## Each physics tick this controller updates the velocity-timeout flag, reads movement input, smooths it through movement inertia, applies gravity and lerps the scalar [member movement_speed].
-## [Player] then reads the per-state speed accumulators (via the [code]_walk[/code], [code]_run[/code], [code]_slide[/code], [code]_idle[/code], [code]_crouch[/code] callables) and the resulting velocity through [method compute_movement_velocity].
+## Each physics tick this controller updates the velocity-timeout flag, reads movement input, smooths it through movement inertia, applies gravity and lerps the scalar [member movement_speed] toward a per-state [member _target_speed].
+## [Player] reads the resulting velocity through [method compute_movement_velocity].
 class_name MovementController
 extends Component
 
@@ -20,53 +20,32 @@ extends Component
 ## Refilled instantly when the player is no longer wall-stuck.
 @export var max_timeout_duration: float = 0.5
 
-@export_category("Crouching and Walking")
-## Base crouch speed in m/s.
-## Added to [member walk_speed] + [member run_speed] to form the grounded floor speed used everywhere.
+@export_category("Movement Speed")
+## Target [member movement_speed] in m/s while in [code]IDLE[/code].
+@export var idle_speed: float = 0.0
+## Target [member movement_speed] in m/s while in [code]CROUCH[/code].
 @export var crouch_speed: float = 2.0
-## Base walk speed in m/s.
-## Added to [member crouch_speed] + [member run_speed] to form the grounded floor speed.
-@export var walk_speed: float = 2.0
-
-@export_category("Running")
-## Upper clamp for the run-only speed accumulator in m/s.
-## Run never adds more than this on top of [member walk_speed].
-@export var max_run_speed: float = 3.0
-## Run-speed buildup rate per second while running.
-@export var run_speed_increase: float = 1.0
-## Run-speed bleed-off rate per second while only walking.
-@export var run_speed_walk_decrease: float = 2.0
-## Run-speed bleed-off rate per second while crouching.
-@export var run_speed_crouch_decrease: float = 4.0
-## Run-speed bleed-off rate per second while idle.
-@export var run_speed_idle_decrease: float = 6.0
-
-@export_category("Sliding")
-## Upper clamp for the slide-only speed accumulator in m/s.
-## The slide branch lets the value dip below zero (uphill braking) but never above this.
-@export var max_slide_speed: float = 3.0
-
-## Fraction of grounded floor speed converted into slide buildup per second on flat ground (before slope modulation).
-@export var slide_buff_multiplier: float = 0.15
-## Multiplier applied to the slope dot product when going uphill — reduces the slide buildup proportionally to the steepness.
-@export var slope_uphill_brake_factor: float = 0.85
-## Multiplier applied to the slope dot product when going downhill — adds extra slide buildup proportionally to the steepness.
-@export var slope_downhill_boost_factor: float = 0.5
-
-## Slide-speed bleed multiplier while running (fraction per second relative to the current floor speed).
-## Low value means run sustains slide longest.
-@export var slide_speed_run_decrease: float = 0.05
-## Slide-speed bleed multiplier while walking.
-@export var slide_speed_walk_decrease: float = 2.0
-## Slide-speed bleed rate per second while crouching.
-@export var slide_speed_crouch_decrease: float = 4.0
-## Slide-speed bleed rate per second while idle.
-@export var slide_speed_idle_decrease: float = 6.0
+## Target [member movement_speed] in m/s while in [code]WALK[/code].
+@export var walk_speed: float = 4.0
+## Target [member movement_speed] in m/s while in [code]RUN[/code].
+@export var run_speed: float = 6.0
+## Target [member movement_speed] in m/s while in [code]SLIDE[/code].
+@export var slide_speed: float = 8.0
 
 @export_category("Speed Inertia")
-## Lerp rate (per second) used to smooth changes in the final scalar [member movement_speed].
-## Higher = snappier.
-@export var speed_inertia: float = 7.5
+## Lerp rate (per second) used while [member movement_speed] is below [member _target_speed] — controls how snappy speed buildup feels.
+@export var speed_accel: float = 7.5
+## Lerp rate used while bleeding excess speed in [code]IDLE[/code].
+@export var idle_speed_decel: float = 6.0
+## Lerp rate used while bleeding excess speed in [code]CROUCH[/code].
+@export var crouch_speed_decel: float = 4.0
+## Lerp rate used while bleeding excess speed in [code]WALK[/code].
+@export var walk_speed_decel: float = 2.0
+## Lerp rate used while bleeding excess speed in [code]RUN[/code].
+## Low value lets slide momentum carry into a run.
+@export var run_speed_decel: float = 0.5
+## Lerp rate used while bleeding excess speed in [code]SLIDE[/code].
+@export var slide_speed_decel: float = 0.5
 
 @export_category("Movement Inertia")
 ## Lerp rate (per second) applied to planar input while grounded — controls how quickly direction changes register on the floor.
@@ -106,11 +85,6 @@ extends Component
 var velocity_timeout: bool = false # true - player is walking into wall for too long time
 ## Smoothed scalar movement speed (m/s) consumed by [method compute_movement_velocity] and read by [CameraController] for FOV.
 var movement_speed: float = 0.0
-## Run-only contribution to the floor speed.
-## Builds up while running and bleeds off in other states.
-var run_speed: float = 0.0
-## Slide-only contribution; positive while sliding, can dip negative on uphill braking.
-var slide_speed: float = 0.0
 
 # Private vars (_)
 var _player_context_module: PlayerContextModule
@@ -123,15 +97,14 @@ var _movement_directions: Vector3
 var _inertia_movement_directions: Vector3
 var _current_inertia: float
 var _wall_jump_directions: Vector3
-## Per-tick movement-logic callable swapped on [signal StateMachine.state_changed].
-## Points at one of [method _walk] / [method _run] / [method _slide] / [method _idle] / [method _crouch] / [method _airborne] so [method _physics_process] only calls one function regardless of the active state.
-var _current_movement_logic: Callable = _idle
+## Target value [member movement_speed] lerps toward each frame.
+## Updated on [signal StateMachine.state_changed]; frozen during airborne states so speed carries through jumps.
+var _target_speed: float = 0.0
 
 # _init / _ready
 
 # Engine callbacks (_process, _physics_process, _input, _unhandled_input, etc.)
 func _physics_process(delta: float) -> void:
-	_current_movement_logic.call()
 	_get_velocity_timeout(delta)
 	_calculate_get_movement_directions()
 	_calculate_movement_inertia(delta)
@@ -140,7 +113,7 @@ func _physics_process(delta: float) -> void:
 
 # Public methods (component APIs)
 ## Caches sibling components and the player root from the injected context.
-## Also connects to [signal StateMachine.state_changed] to drive [member _current_movement_logic].
+## Also connects to [signal StateMachine.state_changed] to drive [member _target_speed] and jump impulses.
 func pass_context_module(context: ContextModule) -> void:
 	_player_context_module = context
 	_player = context.node_refs.player
@@ -232,21 +205,15 @@ func _on_state_changed(new_state: int) -> void:
 	var states := _state_machine.MovementStates
 
 	match new_state:
-		states.IDLE: _current_movement_logic = _idle
-		states.CROUCH: _current_movement_logic = _crouch
-		states.WALK: _current_movement_logic = _walk
-		states.RUN: _current_movement_logic = _run
-		states.SLIDE: _current_movement_logic = _slide
-		states.JUMP:
-			jump()
-			_current_movement_logic = _airborne
-		states.DOUBLE_JUMP:
-			double_jump()
-			_current_movement_logic = _airborne
-		states.WALL_JUMP:
-			wall_jump()
-			_current_movement_logic = _airborne
-		states.FALL: _current_movement_logic = _airborne
+		states.IDLE: _target_speed = idle_speed
+		states.CROUCH: _target_speed = crouch_speed
+		states.WALK: _target_speed = walk_speed
+		states.RUN: _target_speed = run_speed
+		states.SLIDE: _target_speed = slide_speed
+		states.JUMP: jump()
+		states.DOUBLE_JUMP: double_jump()
+		states.WALL_JUMP: wall_jump()
+		# FALL and the airborne states leave _target_speed untouched so momentum carries.
 
 func _is_blocked_on_wall() -> bool:
 	return _player.is_on_floor() and _player.is_on_wall() and _player.velocity.z == 0 and _player.velocity.x == 0
@@ -264,67 +231,26 @@ func _get_velocity_timeout(delta) -> void:
 	else:
 		velocity_timeout = false
 
-func _walk() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	run_speed -= run_speed_walk_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-
-	var floor_speed: float = crouch_speed + walk_speed + run_speed
-	slide_speed -= floor_speed * slide_speed_walk_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _run() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	run_speed += run_speed_increase * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-
-	var floor_speed: float = crouch_speed + walk_speed + run_speed
-	slide_speed -= floor_speed * slide_speed_run_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _slide() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	var calculating_slope: Vector3 = _player.get_floor_normal() * -_player.transform.basis.z
-	var slope_value: float = calculating_slope.z + calculating_slope.x
-	var slope_factor: float = slope_uphill_brake_factor if slope_value < 0.0 else slope_downhill_boost_factor
-	var slope_interference: float = slope_value * slope_factor
-
-	var floor_speed: float = crouch_speed + walk_speed + run_speed
-	var actual_slide_buff: float = floor_speed * (slide_buff_multiplier + slope_interference)
-
-	slide_speed += actual_slide_buff * delta
-	slide_speed = clampf(slide_speed, -floor_speed, max_slide_speed)
-
-func _idle() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	run_speed -= run_speed_idle_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-
-	slide_speed -= slide_speed_idle_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _crouch() -> void:
-	var delta: float = get_physics_process_delta_time()
-
-	run_speed -= run_speed_crouch_decrease * delta
-	run_speed = clampf(run_speed, 0.0, max_run_speed)
-
-	slide_speed -= slide_speed_crouch_decrease * delta
-	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
-
-func _airborne() -> void:
-	pass
-
 func _update_movement_speed(delta: float) -> void:
-	var is_crouching: bool = _state_machine._current_state == _state_machine.MovementStates.CROUCH
-	var effective_walk_speed: float = 0.0 if is_crouching else walk_speed
-	var floor_speed: float = crouch_speed + effective_walk_speed + run_speed
-	var speed_before_inertia: float = maxf(0.0, floor_speed + slide_speed)
-	movement_speed = lerpf(movement_speed, speed_before_inertia, 1.0 - exp(-speed_inertia * delta))
+	var state: int = _state_machine._current_state
+	var states := _state_machine.MovementStates
+
+	# Airborne states freeze movement_speed so jumps carry their pre-jump momentum.
+	if state == states.JUMP or state == states.DOUBLE_JUMP or state == states.WALL_JUMP or state == states.FALL:
+		return
+
+	var rate: float = speed_accel if _target_speed >= movement_speed else _decel_for_state(state)
+	movement_speed = lerpf(movement_speed, _target_speed, 1.0 - exp(-rate * delta))
+
+func _decel_for_state(state: int) -> float:
+	var states := _state_machine.MovementStates
+	match state:
+		states.IDLE: return idle_speed_decel
+		states.CROUCH: return crouch_speed_decel
+		states.WALK: return walk_speed_decel
+		states.RUN: return run_speed_decel
+		states.SLIDE: return slide_speed_decel
+	return speed_accel
 
 func _calculate_get_movement_directions() -> void:
 	var axis: Vector3 = _input_handler.movement_axis
