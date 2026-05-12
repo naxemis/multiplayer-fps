@@ -34,6 +34,10 @@ extends Component
 ## Maximum speed a single slide can add on top of the speed the player entered the slide with.
 ## Effective slide target is clamped to [code]entry_speed + max_slide_speed_gain[/code], so chaining slides is needed to reach [member slide_speed] from a walking start.
 @export var max_slide_speed_gain: float = 2.0
+## Extra slide target added per unit of downhill steepness (positive slope dot product).
+@export var slide_downhill_boost: float = 4.0
+## Slide target penalty applied per unit of uphill steepness (negative slope dot product).
+@export var slide_uphill_brake: float = 6.0
 
 @export_category("Speed Inertia")
 ## Default lerp rate (per second) used while ramping [member movement_speed] up toward the target in [code]IDLE[/code], [code]CROUCH[/code] and [code]WALK[/code].
@@ -241,8 +245,16 @@ func _target_speed_for_state(state: int) -> float:
 		states.CROUCH: return crouch_speed if _has_movement_input() else idle_speed
 		states.WALK: return walk_speed
 		states.RUN: return run_speed
-		states.SLIDE: return minf(slide_speed, _slide_entry_speed + max_slide_speed_gain)
+		states.SLIDE:
+			var capped: float = minf(slide_speed, _slide_entry_speed + max_slide_speed_gain)
+			var slope: float = _slide_slope_value()
+			var factor: float = slide_downhill_boost if slope > 0.0 else slide_uphill_brake
+			return capped + slope * factor
 	return movement_speed
+
+func _slide_slope_value() -> float:
+	var proj: Vector3 = _player.get_floor_normal() * -_player.transform.basis.z
+	return proj.z + proj.x
 
 func _acceleration_speed_for_state(state: int) -> float:
 	var states := _state_machine.MovementStates
