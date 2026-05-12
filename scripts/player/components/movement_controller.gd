@@ -282,9 +282,9 @@ func _crouch_or_other() -> void:
 	slide_speed = clampf(slide_speed, 0.0, max_slide_speed)
 
 func _calculate_get_movement_directions() -> void:
-	var axis: Vector2 = _input_handler.movement_axis
+	var axis: Vector3 = _input_handler.movement_axis
 	_movement_directions.x = axis.x
-	_movement_directions.z = axis.y
+	_movement_directions.z = axis.z
 
 func _calculate_movement_inertia(delta) -> void:
 	match _player.is_on_floor():

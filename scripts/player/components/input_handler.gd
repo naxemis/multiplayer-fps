@@ -37,9 +37,10 @@ const _ACTION_CHANGE_WALL_JUMP_DIRECTION: StringName = &"change_wall_jump_direct
 ## Planar movement axis derived from the four directional actions.
 ## [code]x[/code] is right-minus-left.
 ## [code]y[/code] is back-minus-forward, kept Z-positive-backward to match [member MovementController._movement_directions]'s convention.
-var movement_axis: Vector2:
-	get: return Vector2(
+var movement_axis: Vector3:
+	get: return Vector3(
 		Input.get_action_strength(_ACTION_MOVE_RIGHT) - Input.get_action_strength(_ACTION_MOVE_LEFT),
+		0, 
 		Input.get_action_strength(_ACTION_MOVE_BACK) - Input.get_action_strength(_ACTION_MOVE_FORWARD)
 	)
 
