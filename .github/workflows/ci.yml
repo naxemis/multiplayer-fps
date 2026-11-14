@@ -43,7 +43,7 @@ jobs:
           gdlint "${files[@]}"
 
   godot-check:
-    name: Godot project check
+    name: Check Godot project
     runs-on: ubuntu-latest
 
     steps:
