@@ -1,0 +1,52 @@
+name: Validate Branch Flow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-branch-flow:
+    name: Validate Branch Flow
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check source and target branches
+        env:
+          SOURCE_BRANCH: ${{ github.head_ref }}
+          TARGET_BRANCH: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          case "$TARGET_BRANCH" in
+            dev)
+              if [[ "$SOURCE_BRANCH" == "dev" ||
+                    "$SOURCE_BRANCH" == "main" ||
+                    "$SOURCE_BRANCH" =~ ^rc/ ]]; then
+                echo "Invalid flow: $SOURCE_BRANCH -> $TARGET_BRANCH"
+                exit 1
+              fi
+              ;;
+
+            rc/*)
+              if [[ "$SOURCE_BRANCH" != "dev" ]]; then
+                echo "Only dev can target a release candidate branch."
+                echo "Invalid flow: $SOURCE_BRANCH -> $TARGET_BRANCH"
+                exit 1
+              fi
+              ;;
+
+            main)
+              if [[ ! "$SOURCE_BRANCH" =~ ^rc/[^/]+/rc-[0-9]+$ ]]; then
+                echo "Only rc/<version>/rc-<number> can target main."
+                echo "Invalid flow: $SOURCE_BRANCH -> $TARGET_BRANCH"
+                exit 1
+              fi
+              ;;
+
+            *)
+              echo "No branch-flow rule defined for target: $TARGET_BRANCH"
+              exit 1
+              ;;
+          esac
+
+          echo "Valid flow: $SOURCE_BRANCH -> $TARGET_BRANCH"

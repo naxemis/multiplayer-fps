@@ -1,0 +1,12 @@
+# IDEA
+.idea/
+
+# Godot
+.godot/
+/android/
+
+# macOS
+.DS_Store
+
+# Local scripts
+.scripts/
